@@ -7,7 +7,7 @@ import './styles/global.css'
 async function bootstrap() {
   if (import.meta.env.VITE_MOCK_API === 'true' || typeof window.api === 'undefined') {
     const { setupMockApi } = await import('./lib/mockApi.js')
-    setupMockApi()
+    await setupMockApi()
   }
 
   ReactDOM.createRoot(document.getElementById('root')).render(
