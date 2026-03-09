@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  renderer:
+    build: .
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./src:/app/src
+      - ./node_modules:/app/node_modules
+    environment:
+      - VITE_MOCK_API=true
+      - HOST=0.0.0.0
+    command: npx vite src/renderer --port 3000 --host 0.0.0.0

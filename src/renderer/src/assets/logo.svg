@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- White background -->
+  <rect width="200" height="200" fill="white"/>
+
+  <!-- M letter (black, background) -->
+  <text
+    x="118" y="158"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="128"
+    font-weight="900"
+    fill="#1a1a1a"
+    text-anchor="middle">M</text>
+
+  <!-- C letter: blue fill with thick black stroke — layered depth effect -->
+  <text
+    x="79" y="158"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="128"
+    font-weight="900"
+    fill="#1565C0"
+    stroke="#1a1a1a"
+    stroke-width="10"
+    paint-order="stroke"
+    text-anchor="middle">C</text>
+
+  <!-- Bottom decorative underline -->
+  <rect x="18" y="172" width="164" height="7" fill="#1a1a1a" rx="2"/>
+</svg>
