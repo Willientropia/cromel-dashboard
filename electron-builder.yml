@@ -12,7 +12,7 @@ files:
   - '!{.env,.env.*,.npmrc}'
 win:
   executableName: cromel-dashboard
-  icon: build/icon.png
+  icon: build/icon.svg
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -24,7 +24,7 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
-  icon: build/icon.png
+  icon: build/icon.svg
   target:
     - AppImage
     - deb

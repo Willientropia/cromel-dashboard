@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import PriorityBadge from '../PriorityBadge/PriorityBadge'
+import { IconComment, IconGripVertical } from '../Icons/Icons'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -29,7 +30,8 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
   })
 
   const style = {
-    transform: CSS.Translate.toString(transform)
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0 : 1
   }
 
   const assignedUser = users.find((u) => u.id === task.assignedTo)
@@ -43,7 +45,7 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
     >
       {/* Drag handle */}
       <span className="kanban-card-drag-handle" {...listeners} {...attributes} title="Arrastar">
-        ⋮⋮
+        <IconGripVertical size={14} />
       </span>
 
       {/* Title */}
@@ -65,8 +67,8 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
 
         <div className="kanban-card-meta" style={{ gap: '8px' }}>
           {task.comments.length > 0 && (
-            <span className="kanban-card-comments" title="Comentários">
-              <span>💬</span>
+            <span className="kanban-card-comments" title="Comentarios">
+              <IconComment size={13} />
               <span>{task.comments.length}</span>
             </span>
           )}

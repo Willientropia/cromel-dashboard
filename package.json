@@ -11,7 +11,7 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
-    "preview:web": "vite src/renderer --port 3000"
+    "preview:web": "vite --config vite.web.config.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

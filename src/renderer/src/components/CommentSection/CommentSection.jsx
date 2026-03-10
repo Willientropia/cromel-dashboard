@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { IconComment, IconSend } from '../Icons/Icons'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -49,7 +50,7 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
         onCommentAdded && onCommentAdded(res.data)
       }
     } catch {
-      setError('Erro ao enviar comentário.')
+      setError('Erro ao enviar comentario.')
     } finally {
       setLoading(false)
     }
@@ -64,13 +65,13 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
   return (
     <div className="comments-section">
       <h4>
-        <span>💬</span>
-        Comentários {comments.length > 0 && `(${comments.length})`}
+        <IconComment size={15} />
+        Comentarios {comments.length > 0 && `(${comments.length})`}
       </h4>
 
       <div className="comments-list" ref={listRef}>
         {comments.length === 0 ? (
-          <p className="no-comments">Nenhum comentário ainda. Seja o primeiro!</p>
+          <p className="no-comments">Nenhum comentario ainda. Seja o primeiro!</p>
         ) : (
           comments.map((c) => (
             <div key={c.id} className="comment-item">
@@ -96,7 +97,7 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Adicione um comentário... (Ctrl+Enter para enviar)"
+            placeholder="Adicione um comentario... (Ctrl+Enter para enviar)"
             disabled={loading}
           />
           <button
@@ -105,7 +106,7 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
             disabled={loading || !text.trim()}
             style={{ alignSelf: 'flex-end' }}
           >
-            {loading ? '...' : '↑'}
+            {loading ? '...' : <IconSend size={14} />}
           </button>
         </div>
         {error && <p className="form-error" style={{ marginTop: 6 }}>{error}</p>}
