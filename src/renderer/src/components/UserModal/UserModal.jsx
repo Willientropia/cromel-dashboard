@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconClose, IconTrash } from '../Icons/Icons'
 
 const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
 
@@ -21,11 +22,11 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.username.trim()) {
-      setError('O nome de usuário é obrigatório.')
+      setError('O nome de usuario e obrigatorio.')
       return
     }
     if (!isEdit && !form.password) {
-      setError('A senha é obrigatória.')
+      setError('A senha e obrigatoria.')
       return
     }
     setLoading(true)
@@ -57,7 +58,7 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Excluir o usuário "${user.username}"? Esta ação não pode ser desfeita.`)) return
+    if (!window.confirm(`Excluir o usuario "${user.username}"? Esta acao nao pode ser desfeita.`)) return
     setDeleting(true)
     try {
       const res = await window.api.deleteUser(user.id)
@@ -78,14 +79,14 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h2>{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</h2>
-          <button className="btn-icon" onClick={onClose}>✕</button>
+          <h2>{isEdit ? 'Editar Usuario' : 'Novo Usuario'}</h2>
+          <button className="btn-icon" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="modal-body">
           <form id="user-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Nome de usuário *</label>
+              <label className="form-label">Nome de usuario *</label>
               <input
                 className="form-input"
                 value={form.username}
@@ -106,7 +107,7 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
                 type="password"
                 value={form.password}
                 onChange={(e) => set('password', e.target.value)}
-                placeholder={isEdit ? '••••••••' : 'Mínimo 4 caracteres'}
+                placeholder={isEdit ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : 'Minimo 4 caracteres'}
                 autoComplete="new-password"
               />
             </div>
@@ -137,7 +138,8 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
               disabled={deleting}
               style={{ marginRight: 'auto' }}
             >
-              {deleting ? 'Excluindo...' : '🗑 Excluir'}
+              <IconTrash size={14} />
+              {deleting ? 'Excluindo...' : 'Excluir'}
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={onClose}>
@@ -149,7 +151,7 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
             className="btn btn-primary"
             disabled={loading}
           >
-            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar Usuário'}
+            {loading ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar Usuario'}
           </button>
         </div>
       </div>

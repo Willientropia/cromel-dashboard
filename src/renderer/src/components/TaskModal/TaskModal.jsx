@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import CommentSection from '../CommentSection/CommentSection'
+import { IconClose, IconTrash } from '../Icons/Icons'
 
 const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
 const STATUSES = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'em-andamento', label: 'Em Andamento' },
-  { value: 'concluido', label: 'Concluído' }
+  { value: 'concluido', label: 'Concluido' }
 ]
 const PRIORITIES = [
   { value: 'baixa', label: 'Baixa' },
-  { value: 'media', label: 'Média' },
+  { value: 'media', label: 'Media' },
   { value: 'alta', label: 'Alta' }
 ]
 
@@ -32,7 +33,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
 
-  // Filter users by selected department for "assign to" dropdown
   const deptUsers = users.filter((u) => u.department === form.department && u.role === 'user')
 
   function set(field, value) {
@@ -45,7 +45,7 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.title.trim()) {
-      setError('O título é obrigatório.')
+      setError('O titulo e obrigatorio.')
       return
     }
     setLoading(true)
@@ -104,14 +104,13 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
       <div className="modal modal-lg">
         <div className="modal-header">
           <h2>{isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
-          <button className="btn-icon" onClick={onClose}>✕</button>
+          <button className="btn-icon" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="modal-body">
           <form id="task-form" onSubmit={handleSubmit}>
-            {/* Title */}
             <div className="form-group">
-              <label className="form-label">Título *</label>
+              <label className="form-label">Titulo *</label>
               <input
                 className="form-input"
                 value={form.title}
@@ -122,9 +121,8 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
               />
             </div>
 
-            {/* Description */}
             <div className="form-group">
-              <label className="form-label">Descrição</label>
+              <label className="form-label">Descricao</label>
               <textarea
                 className="form-textarea"
                 value={form.description}
@@ -135,7 +133,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
             </div>
 
             <div className="form-row">
-              {/* Status */}
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <select
@@ -149,7 +146,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
                 </select>
               </div>
 
-              {/* Priority */}
               <div className="form-group">
                 <label className="form-label">Prioridade</label>
                 <select
@@ -165,7 +161,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
             </div>
 
             <div className="form-row">
-              {/* Department */}
               <div className="form-group">
                 <label className="form-label">Departamento</label>
                 <select
@@ -180,7 +175,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
                 </select>
               </div>
 
-              {/* Assigned to */}
               <div className="form-group">
                 <label className="form-label">Atribuir para</label>
                 <select
@@ -188,7 +182,7 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
                   value={form.assignedTo}
                   onChange={(e) => set('assignedTo', e.target.value)}
                 >
-                  <option value="">— Não atribuído —</option>
+                  <option value="">&mdash; Nao atribuido &mdash;</option>
                   {deptUsers.map((u) => (
                     <option key={u.id} value={u.id}>{u.username}</option>
                   ))}
@@ -199,7 +193,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
             {error && <p className="form-error">{error}</p>}
           </form>
 
-          {/* Comments section (only when editing) */}
           {isEdit && (
             <CommentSection
               taskId={task.id}
@@ -218,7 +211,8 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
               disabled={deleting}
               style={{ marginRight: 'auto' }}
             >
-              {deleting ? 'Excluindo...' : '🗑 Excluir'}
+              <IconTrash size={14} />
+              {deleting ? 'Excluindo...' : 'Excluir'}
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={onClose}>
