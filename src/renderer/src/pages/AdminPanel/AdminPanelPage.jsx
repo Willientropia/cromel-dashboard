@@ -10,6 +10,8 @@ import {
   IconPlus,
   IconEdit,
   IconTrash,
+  IconEye,
+  IconEyeOff,
   DeptIcon
 } from '../../components/Icons/Icons'
 
@@ -38,6 +40,11 @@ export default function AdminPanelPage() {
   const [showNewUser, setShowNewUser] = useState(false)
   const [filterPriority, setFilterPriority] = useState('')
   const [toast, setToast] = useState(null)
+  const [visiblePasswords, setVisiblePasswords] = useState({})
+
+  function togglePasswordVisibility(userId) {
+    setVisiblePasswords((prev) => ({ ...prev, [userId]: !prev[userId] }))
+  }
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
@@ -219,6 +226,7 @@ export default function AdminPanelPage() {
                   <thead>
                     <tr>
                       <th>Usuario</th>
+                      <th>Senha</th>
                       <th>Funcao</th>
                       <th>Departamento</th>
                       <th>Tarefas</th>
@@ -240,6 +248,16 @@ export default function AdminPanelPage() {
                             <span className="font-bold">{u.username}</span>
                           </div>
                         </td>
+                        <td>
+                          <div className="password-cell">
+                            <span className="text-sm" style={{ fontFamily: 'var(--font-mono)' }}>
+                              {visiblePasswords[u.id] ? (u.plainPassword || '***') : '\u2022\u2022\u2022\u2022\u2022\u2022'}
+                            </span>
+                            <button className="btn-icon" onClick={() => togglePasswordVisibility(u.id)} title={visiblePasswords[u.id] ? 'Ocultar senha' : 'Ver senha'}>
+                              {visiblePasswords[u.id] ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                            </button>
+                          </div>
+                        </td>
                         <td><span className="role-badge admin">Administrador</span></td>
                         <td><span className="text-muted">&mdash;</span></td>
                         <td>
@@ -258,7 +276,7 @@ export default function AdminPanelPage() {
 
                     {nonAdminUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-500)' }}>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-500)' }}>
                           Nenhum usuario cadastrado. Clique em &quot;Novo Usuario&quot; para criar.
                         </td>
                       </tr>
@@ -281,6 +299,16 @@ export default function AdminPanelPage() {
                                   {getInitials(u.username)}
                                 </div>
                                 <span className="font-bold">{u.username}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="password-cell">
+                                <span className="text-sm" style={{ fontFamily: 'var(--font-mono)' }}>
+                                  {visiblePasswords[u.id] ? (u.plainPassword || '***') : '\u2022\u2022\u2022\u2022\u2022\u2022'}
+                                </span>
+                                <button className="btn-icon" onClick={() => togglePasswordVisibility(u.id)} title={visiblePasswords[u.id] ? 'Ocultar senha' : 'Ver senha'}>
+                                  {visiblePasswords[u.id] ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                                </button>
                               </div>
                             </td>
                             <td><span className="role-badge user">Usuario</span></td>

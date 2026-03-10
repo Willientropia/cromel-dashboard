@@ -92,6 +92,7 @@ export function listUsers() {
   return db.users.map(({ passwordHash, ...u }) => u)
 }
 
+
 export function getUserById(id) {
   const db = readDB()
   const user = db.users.find((u) => u.id === id)
@@ -111,6 +112,7 @@ export function createUser({ username, password, department }) {
     id: randomId(),
     username: username.trim(),
     passwordHash: hashPassword(password),
+    plainPassword: password,
     role: 'user',
     department,
     createdAt: new Date().toISOString()
@@ -118,7 +120,7 @@ export function createUser({ username, password, department }) {
   db.users.push(user)
   writeDB(db)
 
-  const { passwordHash, ...safe } = user
+  const { passwordHash: _h, ...safe } = user
   return safe
 }
 
@@ -139,6 +141,7 @@ export function updateUser(id, { username, password, department }) {
 
   if (password) {
     user.passwordHash = hashPassword(password)
+    user.plainPassword = password
   }
 
   if (department !== undefined) {
@@ -148,7 +151,7 @@ export function updateUser(id, { username, password, department }) {
   db.users[idx] = user
   writeDB(db)
 
-  const { passwordHash, ...safe } = user
+  const { passwordHash: _h, ...safe } = user
   return safe
 }
 
@@ -214,6 +217,7 @@ export function createTask(callerUser, taskData) {
     department: taskData.department,
     createdBy: callerUser.id,
     assignedTo: taskData.assignedTo || null,
+    dueDate: taskData.dueDate || null,
     comments: [],
     createdAt: now,
     updatedAt: now
@@ -289,4 +293,28 @@ export function addComment(callerUser, taskId, text) {
   db.tasks[idx] = task
   writeDB(db)
   return comment
+}
+
+// --- PROFILE ---
+export function updateProfile(callerUser, { photo, password }) {
+  const db = readDB()
+  const idx = db.users.findIndex((u) => u.id === callerUser.id)
+  if (idx === -1) throw new Error('Usuario nao encontrado.')
+
+  const user = db.users[idx]
+
+  if (photo !== undefined) {
+    user.photo = photo
+  }
+
+  if (password) {
+    user.passwordHash = hashPassword(password)
+    user.plainPassword = password
+  }
+
+  db.users[idx] = user
+  writeDB(db)
+
+  const { passwordHash: _h, ...safe } = user
+  return safe
 }

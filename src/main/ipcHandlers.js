@@ -13,7 +13,8 @@ import {
   createTask,
   updateTask,
   deleteTask,
-  addComment
+  addComment,
+  updateProfile
 } from './db.js'
 
 function wrap(fn) {
@@ -136,6 +137,15 @@ export function registerIpcHandlers() {
     wrap(async (_e, { taskId, text }) => {
       const user = requireAuth()
       return addComment(user, taskId, text)
+    })
+  )
+
+  // ─── PROFILE ────────────────────────────────────────────────────────
+  ipcMain.handle(
+    'db:profile:update',
+    wrap(async (_e, data) => {
+      const user = requireAuth()
+      return updateProfile(user, data)
     })
   )
 }
