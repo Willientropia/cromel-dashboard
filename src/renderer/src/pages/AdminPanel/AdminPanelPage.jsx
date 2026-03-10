@@ -3,9 +3,17 @@ import { useLocation } from 'react-router-dom'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import UserModal from '../../components/UserModal/UserModal'
+import {
+  IconBolt,
+  IconRefresh,
+  IconUsers,
+  IconPlus,
+  IconEdit,
+  IconTrash,
+  DeptIcon
+} from '../../components/Icons/Icons'
 
 const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
-const DEPT_ICONS = { Financeiro: '💰', Engenharia: '⚙️', Laboratorio: '🔬' }
 const DEPT_COLORS = { Financeiro: '#2E7D32', Engenharia: '#1565C0', Laboratorio: '#6A1B9A' }
 
 function getInitials(username) {
@@ -17,7 +25,6 @@ export default function AdminPanelPage() {
   const location = useLocation()
   const params = new URLSearchParams(location.search)
 
-  // Determine active tab from URL param
   const urlTab = params.get('tab')
   const urlDept = params.get('dept')
 
@@ -55,7 +62,6 @@ export default function AdminPanelPage() {
     loadData()
   }, [loadData])
 
-  // Sync active tab with URL params
   useEffect(() => {
     if (urlTab === 'users') setActiveTab('users')
     else if (urlDept && DEPARTMENTS.includes(urlDept)) setActiveTab(urlDept)
@@ -89,7 +95,7 @@ export default function AdminPanelPage() {
 
   function handleTaskDeleted(id) {
     setTasks((prev) => prev.filter((t) => t.id !== id))
-    showToast('Tarefa excluída.')
+    showToast('Tarefa excluida.')
   }
 
   function handleUserSaved(saved) {
@@ -102,12 +108,12 @@ export default function AdminPanelPage() {
       }
       return [...prev, saved]
     })
-    showToast('Usuário salvo!')
+    showToast('Usuario salvo!')
   }
 
   function handleUserDeleted(id) {
     setUsers((prev) => prev.filter((u) => u.id !== id))
-    showToast('Usuário excluído.')
+    showToast('Usuario excluido.')
   }
 
   const isDeptTab = DEPARTMENTS.includes(activeTab)
@@ -123,8 +129,10 @@ export default function AdminPanelPage() {
     <>
       {/* Header */}
       <div className="page-header">
-        <h1>⚡ Painel Administrativo</h1>
-        <button className="btn btn-ghost btn-sm" onClick={loadData}>↻ Atualizar</button>
+        <h1><IconBolt size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />Painel Administrativo</h1>
+        <button className="btn btn-ghost btn-sm" onClick={loadData}>
+          <IconRefresh size={14} /> Atualizar
+        </button>
       </div>
 
       {/* Tabs */}
@@ -135,14 +143,14 @@ export default function AdminPanelPage() {
             className={`admin-tab${activeTab === d ? ' active' : ''}`}
             onClick={() => setActiveTab(d)}
           >
-            {DEPT_ICONS[d]} {d}
+            <DeptIcon department={d} size={15} /> {d}
           </button>
         ))}
         <button
           className={`admin-tab${activeTab === 'users' ? ' active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 Usuários
+          <IconUsers size={15} /> Usuarios
         </button>
       </div>
 
@@ -155,7 +163,7 @@ export default function AdminPanelPage() {
                 className="btn btn-primary"
                 onClick={() => setShowNewTask(true)}
               >
-                + Nova Tarefa
+                <IconPlus size={14} /> Nova Tarefa
               </button>
 
               <select
@@ -165,9 +173,9 @@ export default function AdminPanelPage() {
                 style={{ width: 'auto', minWidth: 140 }}
               >
                 <option value="">Todas as prioridades</option>
-                <option value="alta">🔴 Alta</option>
-                <option value="media">🟡 Média</option>
-                <option value="baixa">🟢 Baixa</option>
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baixa">Baixa</option>
               </select>
 
               <span className="text-sm text-muted">
@@ -196,30 +204,29 @@ export default function AdminPanelPage() {
           <div>
             <div className="user-table-section">
               <div className="user-table-header">
-                <h3>Usuários do Sistema</h3>
+                <h3>Usuarios do Sistema</h3>
                 <button className="btn btn-primary" onClick={() => setShowNewUser(true)}>
-                  + Novo Usuário
+                  <IconPlus size={14} /> Novo Usuario
                 </button>
               </div>
 
               {loading ? (
                 <div className="loading-state">
-                  <div className="spinner" /> Carregando usuários...
+                  <div className="spinner" /> Carregando usuarios...
                 </div>
               ) : (
                 <table className="user-table">
                   <thead>
                     <tr>
-                      <th>Usuário</th>
-                      <th>Função</th>
+                      <th>Usuario</th>
+                      <th>Funcao</th>
                       <th>Departamento</th>
                       <th>Tarefas</th>
                       <th>Criado em</th>
-                      <th>Ações</th>
+                      <th>Acoes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Admin row (non-editable) */}
                     {users.filter((u) => u.role === 'admin').map((u) => (
                       <tr key={u.id}>
                         <td>
@@ -234,7 +241,7 @@ export default function AdminPanelPage() {
                           </div>
                         </td>
                         <td><span className="role-badge admin">Administrador</span></td>
-                        <td><span className="text-muted">—</span></td>
+                        <td><span className="text-muted">&mdash;</span></td>
                         <td>
                           <span className="text-sm text-muted">
                             {tasks.filter((t) => t.createdBy === u.id).length} criadas
@@ -244,7 +251,7 @@ export default function AdminPanelPage() {
                           {new Date(u.createdAt).toLocaleDateString('pt-BR')}
                         </td>
                         <td>
-                          <span className="text-sm text-muted">—</span>
+                          <span className="text-sm text-muted">&mdash;</span>
                         </td>
                       </tr>
                     ))}
@@ -252,7 +259,7 @@ export default function AdminPanelPage() {
                     {nonAdminUsers.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-500)' }}>
-                          Nenhum usuário cadastrado. Clique em &quot;+ Novo Usuário&quot; para criar.
+                          Nenhum usuario cadastrado. Clique em &quot;Novo Usuario&quot; para criar.
                         </td>
                       </tr>
                     ) : (
@@ -276,7 +283,7 @@ export default function AdminPanelPage() {
                                 <span className="font-bold">{u.username}</span>
                               </div>
                             </td>
-                            <td><span className="role-badge user">Usuário</span></td>
+                            <td><span className="role-badge user">Usuario</span></td>
                             <td>
                               <span
                                 className="dept-badge"
@@ -285,14 +292,14 @@ export default function AdminPanelPage() {
                                   color: DEPT_COLORS[u.department]
                                 }}
                               >
-                                {DEPT_ICONS[u.department]} {u.department}
+                                <DeptIcon department={u.department} size={12} /> {u.department}
                               </span>
                             </td>
                             <td>
                               <span className="text-sm">
                                 {userTasks.length > 0
-                                  ? `${userTasks.length} atribuída${userTasks.length !== 1 ? 's' : ''}`
-                                  : '—'}
+                                  ? `${userTasks.length} atribuida${userTasks.length !== 1 ? 's' : ''}`
+                                  : '\u2014'}
                               </span>
                             </td>
                             <td className="text-sm text-muted">
@@ -305,7 +312,7 @@ export default function AdminPanelPage() {
                                   onClick={() => setSelectedUser(u)}
                                   title="Editar"
                                 >
-                                  ✏️
+                                  <IconEdit size={15} />
                                 </button>
                               </div>
                             </td>
@@ -321,7 +328,6 @@ export default function AdminPanelPage() {
         )}
       </div>
 
-      {/* Task edit modal */}
       {selectedTask && (
         <TaskModal
           task={selectedTask}
@@ -332,7 +338,6 @@ export default function AdminPanelPage() {
         />
       )}
 
-      {/* New task modal */}
       {showNewTask && (
         <TaskModal
           defaultDept={isDeptTab ? activeTab : DEPARTMENTS[0]}
@@ -342,7 +347,6 @@ export default function AdminPanelPage() {
         />
       )}
 
-      {/* Edit user modal */}
       {selectedUser && (
         <UserModal
           user={selectedUser}
@@ -352,7 +356,6 @@ export default function AdminPanelPage() {
         />
       )}
 
-      {/* New user modal */}
       {showNewUser && (
         <UserModal
           onClose={() => setShowNewUser(false)}
@@ -360,10 +363,9 @@ export default function AdminPanelPage() {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`toast ${toast.type}`}>
-          <span>{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span>{toast.type === 'success' ? '\u2713' : '\u2717'}</span>
           {toast.msg}
         </div>
       )}

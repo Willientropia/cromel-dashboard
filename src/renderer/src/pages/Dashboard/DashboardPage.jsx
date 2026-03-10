@@ -2,12 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
-
-const DEPT_ICONS = {
-  Financeiro: '💰',
-  Engenharia: '⚙️',
-  Laboratorio: '🔬'
-}
+import { IconBolt, IconRefresh, IconPlus, DeptIcon } from '../../components/Icons/Icons'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -45,7 +40,6 @@ export default function DashboardPage() {
   }, [loadData])
 
   async function handleTaskMove(taskId, newStatus) {
-    // Optimistic update
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
@@ -54,7 +48,7 @@ export default function DashboardPage() {
     const res = await window.api.updateTask(taskId, { status: newStatus })
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
-      loadData() // revert
+      loadData()
     }
   }
 
@@ -73,7 +67,7 @@ export default function DashboardPage() {
 
   function handleTaskDeleted(id) {
     setTasks((prev) => prev.filter((t) => t.id !== id))
-    showToast('Tarefa excluída.')
+    showToast('Tarefa excluida.')
   }
 
   const filteredTasks = filterPriority
@@ -87,10 +81,14 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="page-header">
         <h1>
-          {dept ? `${DEPT_ICONS[dept] || '📋'} ${dept}` : 'Dashboard'}
+          {dept ? (
+            <><DeptIcon department={dept} size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />{dept}</>
+          ) : (
+            'Dashboard'
+          )}
         </h1>
         <span className="page-header-dept">
-          {isAdmin ? '⚡ Admin' : dept || 'Geral'}
+          {isAdmin ? <><IconBolt size={13} /> Admin</> : dept || 'Geral'}
         </span>
       </div>
 
@@ -100,7 +98,7 @@ export default function DashboardPage() {
           {/* Toolbar */}
           <div className="kanban-toolbar">
             <button className="btn btn-primary" onClick={() => setShowNewTask(true)}>
-              + Nova Tarefa
+              <IconPlus size={14} /> Nova Tarefa
             </button>
 
             <select
@@ -110,9 +108,9 @@ export default function DashboardPage() {
               style={{ width: 'auto', minWidth: 140 }}
             >
               <option value="">Todas as prioridades</option>
-              <option value="alta">🔴 Alta</option>
-              <option value="media">🟡 Média</option>
-              <option value="baixa">🟢 Baixa</option>
+              <option value="alta">Alta</option>
+              <option value="media">Media</option>
+              <option value="baixa">Baixa</option>
             </select>
 
             <span className="text-sm text-muted">
@@ -125,7 +123,7 @@ export default function DashboardPage() {
               title="Atualizar"
               style={{ marginLeft: 'auto' }}
             >
-              ↻ Atualizar
+              <IconRefresh size={14} /> Atualizar
             </button>
           </div>
 
@@ -146,7 +144,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Edit task modal */}
       {selectedTask && (
         <TaskModal
           task={selectedTask}
@@ -163,7 +160,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* New task modal */}
       {showNewTask && (
         <TaskModal
           defaultDept={dept}
@@ -176,10 +172,9 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`toast ${toast.type}`}>
-          <span>{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span>{toast.type === 'success' ? '\u2713' : '\u2717'}</span>
           {toast.msg}
         </div>
       )}

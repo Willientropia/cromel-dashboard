@@ -1,18 +1,24 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import logoUrl from '../../assets/logo.svg'
+import {
+  IconHome,
+  IconBolt,
+  IconUsers,
+  IconLogout,
+  IconChevronLeft,
+  IconChevronRight,
+  IconSun,
+  IconMoon,
+  DeptIcon
+} from '../Icons/Icons'
 
 const DEPT_COLORS = {
   Financeiro: '#2E7D32',
   Engenharia: '#1565C0',
   Laboratorio: '#6A1B9A'
-}
-
-const DEPT_ICONS = {
-  Financeiro: '💰',
-  Engenharia: '⚙️',
-  Laboratorio: '🔬'
 }
 
 function getInitials(username) {
@@ -27,7 +33,9 @@ function getInitials(username) {
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
+  const { dark, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   async function handleLogout() {
@@ -37,6 +45,24 @@ export default function Sidebar() {
 
   const isAdmin = user?.role === 'admin'
   const dept = user?.department
+
+  // Manual active state for admin links based on search params
+  const params = new URLSearchParams(location.search)
+  const currentDept = params.get('dept')
+  const currentTab = params.get('tab')
+  const isAdminPath = location.pathname === '/admin'
+
+  function isAdminOverviewActive() {
+    return isAdminPath && !currentDept && !currentTab
+  }
+
+  function isDeptActive(d) {
+    return isAdminPath && currentDept === d
+  }
+
+  function isUsersActive() {
+    return isAdminPath && currentTab === 'users'
+  }
 
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
@@ -52,7 +78,7 @@ export default function Sidebar() {
         onClick={() => setCollapsed((c) => !c)}
         title={collapsed ? 'Expandir menu' : 'Recolher menu'}
       >
-        {collapsed ? '›' : '‹'}
+        {collapsed ? <IconChevronRight size={12} /> : <IconChevronLeft size={12} />}
       </button>
 
       {/* Navigation */}
@@ -63,19 +89,23 @@ export default function Sidebar() {
         {isAdmin ? (
           <>
             <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-              <span className="sidebar-link-icon">🏠</span>
-              <span className="sidebar-link-text">Visão Geral</span>
+              <span className="sidebar-link-icon"><IconHome size={18} /></span>
+              <span className="sidebar-link-text">Visao Geral</span>
             </NavLink>
 
-            <NavLink to="/admin" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-              <span className="sidebar-link-icon">⚡</span>
+            <a
+              href="#"
+              className={`sidebar-link${isAdminOverviewActive() ? ' active' : ''}`}
+              onClick={(e) => { e.preventDefault(); navigate('/admin') }}
+            >
+              <span className="sidebar-link-icon"><IconBolt size={18} /></span>
               <span className="sidebar-link-text">Painel Admin</span>
-            </NavLink>
+            </a>
           </>
         ) : (
           <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
             <span className="sidebar-link-icon">
-              {dept ? DEPT_ICONS[dept] || '📋' : '📋'}
+              <DeptIcon department={dept} size={18} />
             </span>
             <span className="sidebar-link-text">{dept || 'Meu Dashboard'}</span>
             {dept && (
@@ -92,43 +122,57 @@ export default function Sidebar() {
           <>
             <div className="sidebar-section-label">Departamentos</div>
             {['Financeiro', 'Engenharia', 'Laboratorio'].map((d) => (
-              <NavLink
+              <a
                 key={d}
-                to={`/admin?dept=${d}`}
-                className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                href="#"
+                className={`sidebar-link${isDeptActive(d) ? ' active' : ''}`}
+                onClick={(e) => { e.preventDefault(); navigate(`/admin?dept=${d}`) }}
               >
-                <span className="sidebar-link-icon">{DEPT_ICONS[d]}</span>
+                <span className="sidebar-link-icon"><DeptIcon department={d} size={18} /></span>
                 <span className="sidebar-link-text">{d}</span>
                 <span
                   className="sidebar-dept-dot"
                   style={{ background: DEPT_COLORS[d] }}
                 />
-              </NavLink>
+              </a>
             ))}
 
-            <div className="sidebar-section-label">Administração</div>
-            <NavLink to="/admin?tab=users" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-              <span className="sidebar-link-icon">👥</span>
-              <span className="sidebar-link-text">Usuários</span>
-            </NavLink>
+            <div className="sidebar-section-label">Administracao</div>
+            <a
+              href="#"
+              className={`sidebar-link${isUsersActive() ? ' active' : ''}`}
+              onClick={(e) => { e.preventDefault(); navigate('/admin?tab=users') }}
+            >
+              <span className="sidebar-link-icon"><IconUsers size={18} /></span>
+              <span className="sidebar-link-text">Usuarios</span>
+            </a>
           </>
         )}
       </nav>
 
-      {/* Footer: user info + logout */}
+      {/* Footer: theme toggle + user info + logout */}
       <div className="sidebar-footer">
+        <button
+          className="sidebar-theme-btn"
+          onClick={toggleTheme}
+          title={dark ? 'Modo claro' : 'Modo noturno'}
+        >
+          {dark ? <IconSun size={16} /> : <IconMoon size={16} />}
+          <span>{dark ? 'Modo Claro' : 'Modo Noturno'}</span>
+        </button>
+
         <div className="sidebar-user-info">
           <div className="sidebar-avatar">{getInitials(user?.username)}</div>
           <div className="sidebar-user-details">
             <div className="sidebar-username">{user?.username}</div>
             <div className="sidebar-role">
-              {isAdmin ? 'Administrador' : dept || 'Usuário'}
+              {isAdmin ? 'Administrador' : dept || 'Usuario'}
             </div>
           </div>
         </div>
 
         <button className="sidebar-logout-btn" onClick={handleLogout}>
-          <span>🚪</span>
+          <span className="sidebar-logout-icon"><IconLogout size={16} /></span>
           <span>Sair</span>
         </button>
       </div>

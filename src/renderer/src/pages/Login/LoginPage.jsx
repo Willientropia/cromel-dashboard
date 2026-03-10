@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { IconWarning } from '../../components/Icons/Icons'
 import logoUrl from '../../assets/logo.svg'
 
 export default function LoginPage() {
@@ -35,22 +36,22 @@ export default function LoginPage() {
         <div className="login-logo">
           <img src={logoUrl} alt="Cromel Logo" />
           <div className="login-logo-name">Cromel Dashboard</div>
-          <div className="login-logo-sub">Sistema de Gestão de Serviços</div>
+          <div className="login-logo-sub">Sistema de Gestao de Servicos</div>
         </div>
 
         <h1 className="login-title">Bem-vindo</h1>
-        <p className="login-subtitle">Faça login para acessar seu painel</p>
+        <p className="login-subtitle">Faca login para acessar seu painel</p>
 
         {error && (
           <div className="login-error">
-            <span>⚠️</span>
+            <IconWarning size={16} />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Usuário</label>
+            <label className="form-label">Usuario</label>
             <input
               className="form-input"
               type="text"
@@ -70,7 +71,7 @@ export default function LoginPage() {
               type="password"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              placeholder="••••••••"
+              placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
               autoComplete="current-password"
               disabled={loading}
             />
