@@ -92,6 +92,11 @@ export function listUsers() {
   return db.users.map(({ passwordHash, ...u }) => u)
 }
 
+export function listUsersBasic() {
+  const db = readDB()
+  return db.users.map((u) => ({ id: u.id, username: u.username, photo: u.photo || null }))
+}
+
 
 export function getUserById(id) {
   const db = readDB()

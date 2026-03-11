@@ -238,6 +238,12 @@ const mockApi = {
   },
 
   // ─── Users ──────────────────────────────────────────────────────────
+  async listUsersBasic() {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    return ok(store.users.map((u) => ({ id: u.id, username: u.username, photo: u.photo || null })))
+  },
+
   async listUsers() {
     const caller = getCallerUser()
     if (!caller || caller.role !== 'admin') return err('Acesso negado.')
@@ -417,6 +423,7 @@ export async function setupMockApi() {
     login: (username, password) => mockApi.login(username, password),
     logout: () => mockApi.logout(),
     getSession: () => mockApi.getSession(),
+    listUsersBasic: () => mockApi.listUsersBasic(),
     listUsers: () => mockApi.listUsers(),
     createUser: (data) => mockApi.createUser(data),
     updateUser: (id, data) => mockApi.updateUser(id, data),

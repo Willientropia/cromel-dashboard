@@ -6,6 +6,7 @@ import {
   getSession,
   getUserById,
   listUsers,
+  listUsersBasic,
   createUser,
   updateUser,
   deleteUser,
@@ -67,6 +68,14 @@ export function registerIpcHandlers() {
   )
 
   // ─── USERS ─────────────────────────────────────────────────────────
+  ipcMain.handle(
+    'db:users:list-basic',
+    wrap(async () => {
+      requireAuth()
+      return listUsersBasic()
+    })
+  )
+
   ipcMain.handle(
     'db:users:list',
     wrap(async () => {

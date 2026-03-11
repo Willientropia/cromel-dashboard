@@ -26,7 +26,7 @@ export default function DashboardPage() {
     try {
       const [tasksRes, usersRes] = await Promise.all([
         window.api.listTasks({}),
-        window.api.listUsers().catch(() => ({ success: true, data: [] }))
+        window.api.listUsersBasic()
       ])
       if (tasksRes.success) setTasks(tasksRes.data)
       if (usersRes.success) setUsers(usersRes.data)

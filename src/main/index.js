@@ -5,12 +5,12 @@ import { registerIpcHandlers } from './ipcHandlers.js'
 import { initDB } from './db.js'
 
 function createWindow() {
-  // Use logo.svg as the window icon
+  // Use icon.png as the window icon (SVG not supported by nativeImage on all platforms)
   let icon
   try {
     const iconPath = is.dev
-      ? join(__dirname, '../../src/renderer/src/assets/logo.svg')
-      : join(__dirname, '../renderer/assets/logo.svg')
+      ? join(__dirname, '../../build/icon.png')
+      : join(__dirname, '../../build/icon.png')
     icon = nativeImage.createFromPath(iconPath)
     if (icon.isEmpty()) icon = undefined
   } catch {

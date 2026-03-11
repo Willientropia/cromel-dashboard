@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   getSession: () => invoke('auth:session'),
 
   // Users
+  listUsersBasic: () => invoke('db:users:list-basic'),
   listUsers: () => invoke('db:users:list'),
   createUser: (data) => invoke('db:users:create', data),
   updateUser: (id, data) => invoke('db:users:update', { id, ...data }),
