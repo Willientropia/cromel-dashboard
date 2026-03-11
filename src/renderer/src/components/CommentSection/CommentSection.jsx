@@ -23,7 +23,7 @@ function formatDate(dateStr) {
   })
 }
 
-export default function CommentSection({ taskId, comments = [], onCommentAdded }) {
+export default function CommentSection({ taskId, comments = [], users = [], onCommentAdded }) {
   const { user } = useAuth()
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
@@ -73,9 +73,16 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
         {comments.length === 0 ? (
           <p className="no-comments">Nenhum comentario ainda. Seja o primeiro!</p>
         ) : (
-          comments.map((c) => (
+          comments.map((c) => {
+            const commentUser = users.find((u) => u.id === c.userId)
+            const photo = commentUser?.photo
+            return (
             <div key={c.id} className="comment-item">
-              <div className="comment-avatar">{getInitials(c.username)}</div>
+              {photo ? (
+                <img src={photo} alt={c.username} className="comment-avatar-img" />
+              ) : (
+                <div className="comment-avatar">{getInitials(c.username)}</div>
+              )}
               <div className="comment-body">
                 <div className="comment-meta">
                   <span className="comment-username">{c.username}</span>
@@ -84,15 +91,19 @@ export default function CommentSection({ taskId, comments = [], onCommentAdded }
                 <p className="comment-text">{c.text}</p>
               </div>
             </div>
-          ))
+          )})
         )}
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="comment-input-row">
-          <div className="comment-avatar" style={{ alignSelf: 'flex-end', marginBottom: '2px' }}>
-            {getInitials(user?.username)}
-          </div>
+          {user?.photo ? (
+            <img src={user.photo} alt={user.username} className="comment-avatar-img" style={{ alignSelf: 'flex-end', marginBottom: '2px' }} />
+          ) : (
+            <div className="comment-avatar" style={{ alignSelf: 'flex-end', marginBottom: '2px' }}>
+              {getInitials(user?.username)}
+            </div>
+          )}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

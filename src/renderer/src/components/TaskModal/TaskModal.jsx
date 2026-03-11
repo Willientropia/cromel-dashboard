@@ -221,6 +221,7 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
             <CommentSection
               taskId={task.id}
               comments={comments}
+              users={users}
               onCommentAdded={handleCommentAdded}
             />
           )}

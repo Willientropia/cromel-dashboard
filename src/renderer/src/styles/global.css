@@ -1927,6 +1927,33 @@ table.user-table tr:hover td {
   object-fit: cover;
 }
 
+/* Avatar images in comments */
+.comment-avatar-img {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+/* Avatar images in kanban cards */
+.kanban-card-assignee-img {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+/* Avatar images in admin table */
+.table-avatar-img {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
 /* ===========================
    MOBILE MENU BUTTON
    =========================== */

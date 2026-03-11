@@ -105,12 +105,21 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
             {timeAgo(task.updatedAt)}
           </span>
           {assignedUser && (
-            <div
-              className="kanban-card-assignee"
-              title={assignedUser.username}
-            >
-              {getInitials(assignedUser.username)}
-            </div>
+            assignedUser.photo ? (
+              <img
+                src={assignedUser.photo}
+                alt={assignedUser.username}
+                className="kanban-card-assignee-img"
+                title={assignedUser.username}
+              />
+            ) : (
+              <div
+                className="kanban-card-assignee"
+                title={assignedUser.username}
+              >
+                {getInitials(assignedUser.username)}
+              </div>
+            )
           )}
         </div>
       </div>

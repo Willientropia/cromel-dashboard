@@ -239,12 +239,16 @@ export default function AdminPanelPage() {
                       <tr key={u.id}>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div
-                              className="sidebar-avatar"
-                              style={{ width: 30, height: 30, fontSize: 11 }}
-                            >
-                              {getInitials(u.username)}
-                            </div>
+                            {u.photo ? (
+                              <img src={u.photo} alt={u.username} className="table-avatar-img" />
+                            ) : (
+                              <div
+                                className="sidebar-avatar"
+                                style={{ width: 30, height: 30, fontSize: 11 }}
+                              >
+                                {getInitials(u.username)}
+                              </div>
+                            )}
                             <span className="font-bold">{u.username}</span>
                           </div>
                         </td>
@@ -287,6 +291,9 @@ export default function AdminPanelPage() {
                           <tr key={u.id}>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {u.photo ? (
+                                <img src={u.photo} alt={u.username} className="table-avatar-img" />
+                              ) : (
                                 <div
                                   className="sidebar-avatar"
                                   style={{
@@ -298,6 +305,7 @@ export default function AdminPanelPage() {
                                 >
                                   {getInitials(u.username)}
                                 </div>
+                              )}
                                 <span className="font-bold">{u.username}</span>
                               </div>
                             </td>
