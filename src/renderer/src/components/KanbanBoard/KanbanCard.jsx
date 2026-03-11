@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import PriorityBadge from '../PriorityBadge/PriorityBadge'
-import { IconComment, IconGripVertical } from '../Icons/Icons'
+import { IconComment, IconGripVertical, IconClock } from '../Icons/Icons'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -23,6 +23,26 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d`
 }
 
+function getDueDateInfo(dueDateStr) {
+  if (!dueDateStr) return null
+  const [y, m, d] = dueDateStr.split('-').map(Number)
+  const due = new Date(y, m - 1, d)
+  due.setHours(23, 59, 59, 999)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diffMs = due.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    const absDays = Math.abs(diffDays)
+    return { label: `${absDays}d atrasado`, className: 'overdue' }
+  }
+  if (diffDays === 0) return { label: 'Vence hoje', className: 'due-today' }
+  if (diffDays === 1) return { label: 'Vence amanha', className: 'due-soon' }
+  if (diffDays <= 3) return { label: `Faltam ${diffDays} dias`, className: 'due-soon' }
+  return { label: `Faltam ${diffDays} dias`, className: 'due-normal' }
+}
+
 export default function KanbanCard({ task, users = [], showDept = false, onClick }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -35,6 +55,7 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
   }
 
   const assignedUser = users.find((u) => u.id === task.assignedTo)
+  const dueInfo = task.status !== 'concluido' ? getDueDateInfo(task.dueDate) : null
 
   return (
     <div
@@ -58,6 +79,14 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
         <p className="kanban-card-description">{task.description}</p>
       )}
 
+      {/* Due date badge */}
+      {dueInfo && (
+        <div className={`kanban-card-due ${dueInfo.className}`}>
+          <IconClock size={12} />
+          <span>{dueInfo.label}</span>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="kanban-card-footer">
         <div className="kanban-card-meta">
@@ -76,12 +105,21 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
             {timeAgo(task.updatedAt)}
           </span>
           {assignedUser && (
-            <div
-              className="kanban-card-assignee"
-              title={assignedUser.username}
-            >
-              {getInitials(assignedUser.username)}
-            </div>
+            assignedUser.photo ? (
+              <img
+                src={assignedUser.photo}
+                alt={assignedUser.username}
+                className="kanban-card-assignee-img"
+                title={assignedUser.username}
+              />
+            ) : (
+              <div
+                className="kanban-card-assignee"
+                title={assignedUser.username}
+              >
+                {getInitials(assignedUser.username)}
+              </div>
+            )
           )}
         </div>
       </div>

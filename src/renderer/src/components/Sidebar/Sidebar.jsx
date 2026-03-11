@@ -7,11 +7,13 @@ import {
   IconHome,
   IconBolt,
   IconUsers,
+  IconUser,
   IconLogout,
   IconChevronLeft,
   IconChevronRight,
   IconSun,
   IconMoon,
+  IconMenu,
   DeptIcon
 } from '../Icons/Icons'
 
@@ -64,8 +66,23 @@ export default function Sidebar() {
     return isAdminPath && currentTab === 'users'
   }
 
+  const [mobileOpen, setMobileOpen] = useState(false)
+
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <>
+    {/* Mobile hamburger */}
+    <button
+      className="mobile-menu-btn"
+      onClick={() => setMobileOpen(true)}
+      title="Abrir menu"
+    >
+      <IconMenu size={22} />
+    </button>
+
+    {/* Mobile overlay */}
+    {mobileOpen && <div className="sidebar-mobile-overlay" onClick={() => setMobileOpen(false)} />}
+
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
         <img src={logoUrl} alt="Cromel" />
@@ -148,6 +165,15 @@ export default function Sidebar() {
             </a>
           </>
         )}
+        <div className="sidebar-section-label">Conta</div>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={() => setMobileOpen(false)}
+        >
+          <span className="sidebar-link-icon"><IconUser size={18} /></span>
+          <span className="sidebar-link-text">Meu Perfil</span>
+        </NavLink>
       </nav>
 
       {/* Footer: theme toggle + user info + logout */}
@@ -161,8 +187,12 @@ export default function Sidebar() {
           <span>{dark ? 'Modo Claro' : 'Modo Noturno'}</span>
         </button>
 
-        <div className="sidebar-user-info">
-          <div className="sidebar-avatar">{getInitials(user?.username)}</div>
+        <div className="sidebar-user-info" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }} title="Meu Perfil">
+          {user?.photo ? (
+            <img src={user.photo} alt="" className="sidebar-avatar-img" />
+          ) : (
+            <div className="sidebar-avatar">{getInitials(user?.username)}</div>
+          )}
           <div className="sidebar-user-details">
             <div className="sidebar-username">{user?.username}</div>
             <div className="sidebar-role">
@@ -177,5 +207,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }

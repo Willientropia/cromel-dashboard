@@ -42,6 +42,7 @@ async function seedData() {
       id: adminId,
       username: 'admin',
       passwordHash: adminHash,
+      plainPassword: 'admin123',
       role: 'admin',
       department: null,
       createdAt: now()
@@ -50,6 +51,7 @@ async function seedData() {
       id: fin1Id,
       username: 'joao.financeiro',
       passwordHash: await hashPassword('senha123'),
+      plainPassword: 'senha123',
       role: 'user',
       department: 'Financeiro',
       createdAt: now()
@@ -58,6 +60,7 @@ async function seedData() {
       id: eng1Id,
       username: 'maria.engenharia',
       passwordHash: await hashPassword('senha123'),
+      plainPassword: 'senha123',
       role: 'user',
       department: 'Engenharia',
       createdAt: now()
@@ -66,6 +69,7 @@ async function seedData() {
       id: lab1Id,
       username: 'pedro.laboratorio',
       passwordHash: await hashPassword('senha123'),
+      plainPassword: 'senha123',
       role: 'user',
       department: 'Laboratorio',
       createdAt: now()
@@ -73,6 +77,16 @@ async function seedData() {
   ]
 
   const t = now()
+  // Helper to create future dates for seed data
+  function futureDate(days) {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${dd}`
+  }
+
   store.tasks = [
     {
       id: randomId(),
@@ -83,6 +97,7 @@ async function seedData() {
       department: 'Financeiro',
       createdBy: adminId,
       assignedTo: fin1Id,
+      dueDate: futureDate(2),
       comments: [
         {
           id: randomId(),
@@ -104,6 +119,7 @@ async function seedData() {
       department: 'Financeiro',
       createdBy: fin1Id,
       assignedTo: null,
+      dueDate: futureDate(7),
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -117,6 +133,7 @@ async function seedData() {
       department: 'Engenharia',
       createdBy: adminId,
       assignedTo: eng1Id,
+      dueDate: futureDate(1),
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -130,6 +147,7 @@ async function seedData() {
       department: 'Engenharia',
       createdBy: eng1Id,
       assignedTo: null,
+      dueDate: futureDate(14),
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -143,6 +161,7 @@ async function seedData() {
       department: 'Laboratorio',
       createdBy: adminId,
       assignedTo: lab1Id,
+      dueDate: null,
       comments: [
         {
           id: randomId(),
@@ -164,6 +183,7 @@ async function seedData() {
       department: 'Laboratorio',
       createdBy: lab1Id,
       assignedTo: null,
+      dueDate: futureDate(5),
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -184,7 +204,7 @@ function getCallerUser() {
   return store.users.find((u) => u.id === store.session.userId) || null
 }
 
-function safeUser(u) {
+function safeUser(u, includePassword = false) {
   if (!u) return null
   const { passwordHash, ...safe } = u
   return safe
@@ -235,6 +255,7 @@ const mockApi = {
       id: randomId(),
       username: data.username.trim(),
       passwordHash: await hashPassword(data.password),
+      plainPassword: data.password,
       role: 'user',
       department: data.department,
       createdAt: now()
@@ -256,7 +277,10 @@ const mockApi = {
       if (dup) return err('Nome de usuário já existe.')
       user.username = data.username.trim()
     }
-    if (data.password) user.passwordHash = await hashPassword(data.password)
+    if (data.password) {
+      user.passwordHash = await hashPassword(data.password)
+      user.plainPassword = data.password
+    }
     if (data.department !== undefined) user.department = data.department
     store.users[idx] = user
     return ok(safeUser(user))
@@ -306,6 +330,7 @@ const mockApi = {
       department: data.department,
       createdBy: caller.id,
       assignedTo: data.assignedTo || null,
+      dueDate: data.dueDate || null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -367,6 +392,21 @@ const mockApi = {
     task.comments.push(comment)
     task.updatedAt = now()
     return ok(comment)
+  },
+
+  async updateProfile(data) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    const idx = store.users.findIndex((u) => u.id === caller.id)
+    if (idx === -1) return err('Usuario nao encontrado.')
+    const user = { ...store.users[idx] }
+    if (data.photo !== undefined) user.photo = data.photo
+    if (data.password) {
+      user.passwordHash = await hashPassword(data.password)
+      user.plainPassword = data.password
+    }
+    store.users[idx] = user
+    return ok(safeUser(user))
   }
 }
 
@@ -385,6 +425,7 @@ export async function setupMockApi() {
     createTask: (data) => mockApi.createTask(data),
     updateTask: (id, updates) => mockApi.updateTask(id, updates),
     deleteTask: (id) => mockApi.deleteTask(id),
-    addComment: (taskId, text) => mockApi.addComment(taskId, text)
+    addComment: (taskId, text) => mockApi.addComment(taskId, text),
+    updateProfile: (data) => mockApi.updateProfile(data)
   }
 }

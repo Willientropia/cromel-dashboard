@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import CommentSection from '../CommentSection/CommentSection'
-import { IconClose, IconTrash } from '../Icons/Icons'
+import DatePicker from '../DatePicker/DatePicker'
+import { IconClose, IconTrash, IconCalendar } from '../Icons/Icons'
 
 const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
 const STATUSES = [
@@ -26,7 +27,8 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
     status: task?.status || 'pendente',
     priority: task?.priority || 'media',
     department: task?.department || defaultDept || (isAdmin ? 'Financeiro' : user?.department) || 'Financeiro',
-    assignedTo: task?.assignedTo || ''
+    assignedTo: task?.assignedTo || '',
+    dueDate: task?.dueDate || ''
   })
   const [comments, setComments] = useState(task?.comments || [])
   const [loading, setLoading] = useState(false)
@@ -53,7 +55,8 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
     try {
       const payload = {
         ...form,
-        assignedTo: form.assignedTo || null
+        assignedTo: form.assignedTo || null,
+        dueDate: form.dueDate || null
       }
       let res
       if (isEdit) {
@@ -93,7 +96,10 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
   }
 
   function handleCommentAdded(comment) {
-    setComments((prev) => [...prev, comment])
+    setComments((prev) => {
+      if (prev.some((c) => c.id === comment.id)) return prev
+      return [...prev, comment]
+    })
   }
 
   const canDelete = isAdmin && isEdit
@@ -108,6 +114,15 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
         </div>
 
         <div className="modal-body">
+          {isEdit && task.createdAt && (
+            <div className="task-meta-bar">
+              <span className="task-meta-item">
+                <IconCalendar size={13} />
+                Criada em {new Date(task.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
+
           <form id="task-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Titulo *</label>
@@ -190,6 +205,15 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
               </div>
             </div>
 
+            <div className="form-group">
+              <label className="form-label">Data limite de entrega</label>
+              <DatePicker
+                value={form.dueDate}
+                onChange={(val) => set('dueDate', val)}
+                placeholder="Selecionar prazo..."
+              />
+            </div>
+
             {error && <p className="form-error">{error}</p>}
           </form>
 
@@ -197,6 +221,7 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
             <CommentSection
               taskId={task.id}
               comments={comments}
+              users={users}
               onCommentAdded={handleCommentAdded}
             />
           )}
