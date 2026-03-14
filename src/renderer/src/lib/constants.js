@@ -1,0 +1,33 @@
+export const DEPARTMENTS = [
+  'Administrativo',
+  'Comercial',
+  'Financeiro',
+  'Orcamentista',
+  'Engenharia',
+  'Laboratorio',
+  'Campo'
+]
+
+export const DEPT_COLORS = {
+  Administrativo: '#795548',
+  Comercial: '#E65100',
+  Financeiro: '#2E7D32',
+  Orcamentista: '#FF6F00',
+  Engenharia: '#1565C0',
+  Laboratorio: '#6A1B9A',
+  Campo: '#00695C'
+}
+
+export const CLIENT_MANAGER_DEPTS = ['Comercial', 'Financeiro']
+
+export const STATUSES = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'em-andamento', label: 'Em Andamento' },
+  { value: 'concluido', label: 'Concluido' }
+]
+
+export const PRIORITIES = [
+  { value: 'baixa', label: 'Baixa' },
+  { value: 'media', label: 'Media' },
+  { value: 'alta', label: 'Alta' }
+]

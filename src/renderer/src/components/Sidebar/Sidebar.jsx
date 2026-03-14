@@ -16,12 +16,7 @@ import {
   IconMenu,
   DeptIcon
 } from '../Icons/Icons'
-
-const DEPT_COLORS = {
-  Financeiro: '#2E7D32',
-  Engenharia: '#1565C0',
-  Laboratorio: '#6A1B9A'
-}
+import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -46,7 +41,7 @@ export default function Sidebar() {
   }
 
   const isAdmin = user?.role === 'admin'
-  const dept = user?.department
+  const depts = user?.departments || []
 
   // Manual active state for admin links based on search params
   const params = new URLSearchParams(location.search)
@@ -64,6 +59,10 @@ export default function Sidebar() {
 
   function isUsersActive() {
     return isAdminPath && currentTab === 'users'
+  }
+
+  function isClientsTabActive() {
+    return isAdminPath && currentTab === 'clients'
   }
 
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -122,13 +121,15 @@ export default function Sidebar() {
         ) : (
           <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
             <span className="sidebar-link-icon">
-              <DeptIcon department={dept} size={18} />
+              <DeptIcon department={depts[0]} size={18} />
             </span>
-            <span className="sidebar-link-text">{dept || 'Meu Dashboard'}</span>
-            {dept && (
+            <span className="sidebar-link-text">
+              {depts.length === 1 ? depts[0] : 'Meu Dashboard'}
+            </span>
+            {depts.length === 1 && (
               <span
                 className="sidebar-dept-dot"
-                style={{ background: DEPT_COLORS[dept] || 'var(--primary)' }}
+                style={{ background: DEPT_COLORS[depts[0]] || 'var(--primary)' }}
               />
             )}
           </NavLink>
@@ -138,7 +139,7 @@ export default function Sidebar() {
         {isAdmin && (
           <>
             <div className="sidebar-section-label">Departamentos</div>
-            {['Financeiro', 'Engenharia', 'Laboratorio'].map((d) => (
+            {DEPARTMENTS.map((d) => (
               <a
                 key={d}
                 href="#"
@@ -157,6 +158,14 @@ export default function Sidebar() {
             <div className="sidebar-section-label">Administracao</div>
             <a
               href="#"
+              className={`sidebar-link${isClientsTabActive() ? ' active' : ''}`}
+              onClick={(e) => { e.preventDefault(); navigate('/admin?tab=clients') }}
+            >
+              <span className="sidebar-link-icon"><IconUsers size={18} /></span>
+              <span className="sidebar-link-text">Clientes</span>
+            </a>
+            <a
+              href="#"
               className={`sidebar-link${isUsersActive() ? ' active' : ''}`}
               onClick={(e) => { e.preventDefault(); navigate('/admin?tab=users') }}
             >
@@ -165,6 +174,22 @@ export default function Sidebar() {
             </a>
           </>
         )}
+
+        {/* Clients link for non-admin users */}
+        {!isAdmin && (
+          <>
+            <div className="sidebar-section-label">Clientes</div>
+            <NavLink
+              to="/clients"
+              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span className="sidebar-link-icon"><IconUsers size={18} /></span>
+              <span className="sidebar-link-text">Clientes</span>
+            </NavLink>
+          </>
+        )}
+
         <div className="sidebar-section-label">Conta</div>
         <NavLink
           to="/profile"
@@ -196,7 +221,7 @@ export default function Sidebar() {
           <div className="sidebar-user-details">
             <div className="sidebar-username">{user?.username}</div>
             <div className="sidebar-role">
-              {isAdmin ? 'Administrador' : dept || 'Usuario'}
+              {isAdmin ? 'Administrador' : depts.length > 0 ? depts.join(', ') : 'Usuario'}
             </div>
           </div>
         </div>

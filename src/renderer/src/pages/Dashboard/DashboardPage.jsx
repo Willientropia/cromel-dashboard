@@ -3,18 +3,24 @@ import { useAuth } from '../../contexts/AuthContext'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import { IconBolt, IconRefresh, IconPlus, DeptIcon } from '../../components/Icons/Icons'
+import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
+  const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
   const [showNewTask, setShowNewTask] = useState(false)
   const [filterPriority, setFilterPriority] = useState('')
+  const [filterDept, setFilterDept] = useState('')
   const [toast, setToast] = useState(null)
+  const [followUpDefaults, setFollowUpDefaults] = useState(null)
 
-  const dept = user?.department
+  const isAdmin = user?.role === 'admin'
+  const depts = user?.departments || []
+  const deptTabs = isAdmin ? DEPARTMENTS : depts
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
@@ -24,12 +30,14 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [tasksRes, usersRes] = await Promise.all([
+      const [tasksRes, usersRes, clientsRes] = await Promise.all([
         window.api.listTasks({}),
-        window.api.listUsersBasic()
+        window.api.listUsersBasic(),
+        window.api.listClients()
       ])
       if (tasksRes.success) setTasks(tasksRes.data)
       if (usersRes.success) setUsers(usersRes.data)
+      if (clientsRes.success) setClients(clientsRes.data)
     } finally {
       setLoading(false)
     }
@@ -40,6 +48,7 @@ export default function DashboardPage() {
   }, [loadData])
 
   async function handleTaskMove(taskId, newStatus) {
+    const task = tasks.find((t) => t.id === taskId)
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
@@ -49,6 +58,17 @@ export default function DashboardPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
+    } else if (
+      newStatus === 'concluido' &&
+      task?.status !== 'concluido' &&
+      task?.clientId
+    ) {
+      const wantsFollowUp = window.confirm(
+        'Tarefa concluida! Deseja criar uma tarefa de acompanhamento para outro departamento?'
+      )
+      if (wantsFollowUp) {
+        setFollowUpDefaults({ clientId: task.clientId, originalTitle: task.title })
+      }
     }
   }
 
@@ -70,25 +90,32 @@ export default function DashboardPage() {
     showToast('Tarefa excluida.')
   }
 
-  const filteredTasks = filterPriority
-    ? tasks.filter((t) => t.priority === filterPriority)
-    : tasks
+  let filteredTasks = tasks
+  if (filterDept) filteredTasks = filteredTasks.filter((t) => t.department === filterDept)
+  if (filterPriority) filteredTasks = filteredTasks.filter((t) => t.priority === filterPriority)
 
-  const isAdmin = user?.role === 'admin'
+  // Build client map for kanban cards
+  const clientMap = {}
+  clients.forEach((c) => { clientMap[c.id] = c })
 
   return (
     <>
       {/* Header */}
       <div className="page-header">
         <h1>
-          {dept ? (
-            <><DeptIcon department={dept} size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />{dept}</>
+          {depts.length === 1 ? (
+            <>
+              <DeptIcon department={depts[0]} size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
+              {depts[0]}
+            </>
+          ) : depts.length > 1 ? (
+            'Meus Departamentos'
           ) : (
             'Dashboard'
           )}
         </h1>
         <span className="page-header-dept">
-          {isAdmin ? <><IconBolt size={13} /> Admin</> : dept || 'Geral'}
+          {isAdmin ? <><IconBolt size={13} /> Admin</> : depts.join(', ') || 'Geral'}
         </span>
       </div>
 
@@ -100,6 +127,20 @@ export default function DashboardPage() {
             <button className="btn btn-primary" onClick={() => setShowNewTask(true)}>
               <IconPlus size={14} /> Nova Tarefa
             </button>
+
+            {deptTabs.length > 1 && (
+              <select
+                className="form-select"
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
+                style={{ width: 'auto', minWidth: 160 }}
+              >
+                <option value="">Todos os departamentos</option>
+                {deptTabs.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            )}
 
             <select
               className="form-select"
@@ -136,7 +177,8 @@ export default function DashboardPage() {
             <KanbanBoard
               tasks={filteredTasks}
               users={users}
-              showDept={false}
+              clientMap={clientMap}
+              showDept={deptTabs.length > 1 && !filterDept}
               onTaskMove={handleTaskMove}
               onCardClick={(t) => setSelectedTask(t)}
             />
@@ -157,17 +199,33 @@ export default function DashboardPage() {
             handleTaskDeleted(id)
             setSelectedTask(null)
           }}
+          onRequestFollowUp={(defaults) => {
+            setSelectedTask(null)
+            setFollowUpDefaults(defaults)
+          }}
         />
       )}
 
       {showNewTask && (
         <TaskModal
-          defaultDept={dept}
+          defaultDept={filterDept || depts[0]}
           users={users}
           onClose={() => setShowNewTask(false)}
           onSaved={(saved) => {
             handleTaskSaved(saved)
             setShowNewTask(false)
+          }}
+        />
+      )}
+
+      {followUpDefaults && (
+        <TaskModal
+          defaultClientId={followUpDefaults.clientId}
+          users={users}
+          onClose={() => setFollowUpDefaults(null)}
+          onSaved={(saved) => {
+            handleTaskSaved(saved)
+            setFollowUpDefaults(null)
           }}
         />
       )}

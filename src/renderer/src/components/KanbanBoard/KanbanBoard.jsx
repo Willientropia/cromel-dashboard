@@ -17,6 +17,7 @@ const STATUSES = ['pendente', 'em-andamento', 'concluido']
 export default function KanbanBoard({
   tasks,
   users = [],
+  clientMap = {},
   showDept = false,
   onTaskMove,
   onCardClick
@@ -72,6 +73,7 @@ export default function KanbanBoard({
             status={status}
             tasks={tasksByStatus[status]}
             users={users}
+            clientMap={clientMap}
             showDept={showDept}
             onCardClick={onCardClick}
           />

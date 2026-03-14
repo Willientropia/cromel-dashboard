@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { IconClose, IconTrash } from '../Icons/Icons'
-
-const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
+import { IconClose, IconTrash, DeptIcon } from '../Icons/Icons'
+import { DEPARTMENTS } from '../../lib/constants'
 
 export default function UserModal({ user, onClose, onSaved, onDeleted }) {
   const isEdit = !!user
@@ -9,7 +8,7 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
   const [form, setForm] = useState({
     username: user?.username || '',
     password: '',
-    department: user?.department || 'Financeiro'
+    departments: user?.departments || []
   })
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -17,6 +16,15 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  function toggleDept(d) {
+    setForm((f) => {
+      const deps = f.departments.includes(d)
+        ? f.departments.filter((x) => x !== d)
+        : [...f.departments, d]
+      return { ...f, departments: deps }
+    })
   }
 
   async function handleSubmit(e) {
@@ -29,19 +37,23 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
       setError('A senha e obrigatoria.')
       return
     }
+    if (form.departments.length === 0) {
+      setError('Selecione ao menos um departamento.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
       let res
       if (isEdit) {
-        const updates = { username: form.username, department: form.department }
+        const updates = { username: form.username, departments: form.departments }
         if (form.password) updates.password = form.password
         res = await window.api.updateUser(user.id, updates)
       } else {
         res = await window.api.createUser({
           username: form.username,
           password: form.password,
-          department: form.department
+          departments: form.departments
         })
       }
       if (!res.success) {
@@ -113,16 +125,20 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Departamento</label>
-              <select
-                className="form-select"
-                value={form.department}
-                onChange={(e) => set('department', e.target.value)}
-              >
+              <label className="form-label">Departamentos *</label>
+              <div className="dept-checkbox-group">
                 {DEPARTMENTS.map((d) => (
-                  <option key={d} value={d}>{d}</option>
+                  <label key={d} className={`dept-checkbox-label${form.departments.includes(d) ? ' checked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={form.departments.includes(d)}
+                      onChange={() => toggleDept(d)}
+                    />
+                    <DeptIcon department={d} size={14} />
+                    <span>{d}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             {error && <p className="form-error">{error}</p>}

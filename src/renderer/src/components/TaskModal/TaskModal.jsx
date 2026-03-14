@@ -1,22 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import CommentSection from '../CommentSection/CommentSection'
 import DatePicker from '../DatePicker/DatePicker'
 import { IconClose, IconTrash, IconCalendar } from '../Icons/Icons'
+import { DEPARTMENTS, STATUSES, PRIORITIES } from '../../lib/constants'
 
-const DEPARTMENTS = ['Financeiro', 'Engenharia', 'Laboratorio']
-const STATUSES = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'em-andamento', label: 'Em Andamento' },
-  { value: 'concluido', label: 'Concluido' }
-]
-const PRIORITIES = [
-  { value: 'baixa', label: 'Baixa' },
-  { value: 'media', label: 'Media' },
-  { value: 'alta', label: 'Alta' }
-]
-
-export default function TaskModal({ task, defaultDept, users = [], onClose, onSaved, onDeleted }) {
+export default function TaskModal({
+  task,
+  defaultDept,
+  defaultClientId,
+  users = [],
+  onClose,
+  onSaved,
+  onDeleted,
+  onRequestFollowUp
+}) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const isEdit = !!task
@@ -26,16 +24,30 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
     description: task?.description || '',
     status: task?.status || 'pendente',
     priority: task?.priority || 'media',
-    department: task?.department || defaultDept || (isAdmin ? 'Financeiro' : user?.department) || 'Financeiro',
+    department:
+      task?.department ||
+      defaultDept ||
+      (isAdmin ? DEPARTMENTS[0] : user?.departments?.[0]) ||
+      DEPARTMENTS[0],
     assignedTo: task?.assignedTo || '',
-    dueDate: task?.dueDate || ''
+    dueDate: task?.dueDate || '',
+    clientId: task?.clientId || defaultClientId || ''
   })
   const [comments, setComments] = useState(task?.comments || [])
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
+  const [clients, setClients] = useState([])
 
-  const deptUsers = users.filter((u) => u.department === form.department && u.role === 'user')
+  useEffect(() => {
+    window.api.listClients().then((res) => {
+      if (res.success) setClients(res.data)
+    })
+  }, [])
+
+  const deptUsers = users.filter(
+    (u) => u.departments?.includes(form.department) && u.role !== 'admin'
+  )
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -56,7 +68,8 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
       const payload = {
         ...form,
         assignedTo: form.assignedTo || null,
-        dueDate: form.dueDate || null
+        dueDate: form.dueDate || null,
+        clientId: form.clientId || null
       }
       let res
       if (isEdit) {
@@ -68,6 +81,26 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
         setError(res.error)
       } else {
         onSaved && onSaved(res.data)
+
+        // Follow-up flow: when task is completed
+        if (
+          isEdit &&
+          task.status !== 'concluido' &&
+          form.status === 'concluido' &&
+          form.clientId &&
+          onRequestFollowUp
+        ) {
+          const wantsFollowUp = window.confirm(
+            'Tarefa concluida! Deseja criar uma tarefa de acompanhamento para outro departamento?'
+          )
+          if (wantsFollowUp) {
+            onRequestFollowUp({
+              clientId: form.clientId,
+              originalTitle: form.title
+            })
+          }
+        }
+
         onClose()
       }
     } catch (err) {
@@ -103,7 +136,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
   }
 
   const canDelete = isAdmin && isEdit
-  const canEditDept = isAdmin
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -124,6 +156,22 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
           )}
 
           <form id="task-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">Cliente</label>
+              <select
+                className="form-select"
+                value={form.clientId}
+                onChange={(e) => set('clientId', e.target.value)}
+              >
+                <option value="">-- Selecionar cliente --</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome} {c.cidade ? `(${c.cidade})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="form-group">
               <label className="form-label">Titulo *</label>
               <input
@@ -182,7 +230,6 @@ export default function TaskModal({ task, defaultDept, users = [], onClose, onSa
                   className="form-select"
                   value={form.department}
                   onChange={(e) => set('department', e.target.value)}
-                  disabled={!canEditDept}
                 >
                   {DEPARTMENTS.map((d) => (
                     <option key={d} value={d}>{d}</option>

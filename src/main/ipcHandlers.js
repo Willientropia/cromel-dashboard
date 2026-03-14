@@ -15,7 +15,12 @@ import {
   updateTask,
   deleteTask,
   addComment,
-  updateProfile
+  updateProfile,
+  listClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient
 } from './db.js'
 
 function wrap(fn) {
@@ -146,6 +151,47 @@ export function registerIpcHandlers() {
     wrap(async (_e, { taskId, text }) => {
       const user = requireAuth()
       return addComment(user, taskId, text)
+    })
+  )
+
+  // ─── CLIENTS ───────────────────────────────────────────────────────
+  ipcMain.handle(
+    'db:clients:list',
+    wrap(async () => {
+      const user = requireAuth()
+      return listClients(user)
+    })
+  )
+
+  ipcMain.handle(
+    'db:clients:get',
+    wrap(async (_e, { id }) => {
+      const user = requireAuth()
+      return getClientById(user, id)
+    })
+  )
+
+  ipcMain.handle(
+    'db:clients:create',
+    wrap(async (_e, data) => {
+      const user = requireAuth()
+      return createClient(user, data)
+    })
+  )
+
+  ipcMain.handle(
+    'db:clients:update',
+    wrap(async (_e, { id, ...data }) => {
+      const user = requireAuth()
+      return updateClient(user, id, data)
+    })
+  )
+
+  ipcMain.handle(
+    'db:clients:delete',
+    wrap(async (_e, { id }) => {
+      const user = requireAuth()
+      return deleteClient(user, id)
     })
   )
 
