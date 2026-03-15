@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import PriorityBadge from '../PriorityBadge/PriorityBadge'
-import { IconComment, IconGripVertical, IconClock } from '../Icons/Icons'
+import { IconComment, IconGripVertical, IconClock, IconCheck } from '../Icons/Icons'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -43,7 +43,17 @@ function getDueDateInfo(dueDateStr) {
   return { label: `Faltam ${diffDays} dias`, className: 'due-normal' }
 }
 
-export default function KanbanCard({ task, users = [], clientMap = {}, showDept = false, onClick }) {
+function formatDuration(createdAt, completedAt) {
+  if (!createdAt || !completedAt) return null
+  const ms = new Date(completedAt) - new Date(createdAt)
+  const hours = Math.floor(ms / 3600000)
+  const days = Math.floor(hours / 24)
+  if (days > 0) return `${days}d`
+  if (hours > 0) return `${hours}h`
+  return '<1h'
+}
+
+export default function KanbanCard({ task, users = [], clientMap = {}, showDept = false, onClick, onArchive }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { task }
@@ -57,12 +67,14 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
   const assignedUser = users.find((u) => u.id === task.assignedTo)
   const clientName = task.clientId && clientMap[task.clientId] ? clientMap[task.clientId].nome : null
   const dueInfo = task.status !== 'concluido' ? getDueDateInfo(task.dueDate) : null
+  const isCompleted = task.status === 'concluido'
+  const duration = isCompleted ? formatDuration(task.createdAt, task.completedAt) : null
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`kanban-card${isDragging ? ' dragging' : ''}`}
+      className={`kanban-card${isDragging ? ' dragging' : ''}${isCompleted ? ' completed' : ''}`}
       onClick={() => !isDragging && onClick && onClick(task)}
     >
       {/* Drag handle */}
@@ -88,6 +100,14 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
         <div className={`kanban-card-due ${dueInfo.className}`}>
           <IconClock size={12} />
           <span>{dueInfo.label}</span>
+        </div>
+      )}
+
+      {/* Completed timing */}
+      {isCompleted && duration && (
+        <div className="kanban-card-timing">
+          <IconClock size={12} />
+          <span>Concluida em {duration}</span>
         </div>
       )}
 
@@ -127,6 +147,20 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
           )}
         </div>
       </div>
+
+      {/* Archive button for completed tasks */}
+      {isCompleted && onArchive && (
+        <button
+          className="btn btn-sm kanban-card-archive-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            onArchive(task.id)
+          }}
+          title="Arquivar tarefa"
+        >
+          <IconCheck size={12} /> Arquivar
+        </button>
+      )}
     </div>
   )
 }

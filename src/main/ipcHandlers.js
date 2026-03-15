@@ -14,6 +14,7 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  archiveTask,
   addComment,
   updateProfile,
   listClients,
@@ -149,6 +150,14 @@ export function registerIpcHandlers() {
     wrap(async (_e, { id }) => {
       const user = requireAdmin()
       return deleteTask(user, id)
+    })
+  )
+
+  ipcMain.handle(
+    'db:tasks:archive',
+    wrap(async (_e, { id }) => {
+      const user = requireAuth()
+      return archiveTask(user, id)
     })
   )
 
