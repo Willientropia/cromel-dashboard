@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const [filterPriority, setFilterPriority] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [toast, setToast] = useState(null)
-  const [followUpDefaults, setFollowUpDefaults] = useState(null)
   const [pendingFollowUp, setPendingFollowUp] = useState(null)
 
   const isAdmin = user?.role === 'admin'
@@ -60,8 +59,18 @@ export default function DashboardPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
-    } else if (newStatus === 'concluido' && task?.clientId) {
-      setPendingFollowUp({ taskId, clientId: task.clientId, originalTitle: task.title })
+    } else if (newStatus === 'concluido') {
+      setPendingFollowUp({
+        taskId,
+        clientId: task?.clientId || null,
+        serviceId: task?.serviceId || null,
+        title: task?.title || '',
+        description: task?.description || '',
+        priority: task?.priority || 'media',
+        department: task?.department || '',
+        assignedTo: task?.assignedTo || null,
+        dueDate: task?.dueDate || null
+      })
     }
   }
 
@@ -78,8 +87,18 @@ export default function DashboardPage() {
     showToast('Tarefa salva com sucesso!')
 
     // Show follow-up modal when task is completed via modal
-    if (saved.status === 'concluido' && saved.clientId) {
-      setPendingFollowUp({ taskId: saved.id, clientId: saved.clientId, originalTitle: saved.title })
+    if (saved.status === 'concluido') {
+      setPendingFollowUp({
+        taskId: saved.id,
+        clientId: saved.clientId || null,
+        serviceId: saved.serviceId || null,
+        title: saved.title || '',
+        description: saved.description || '',
+        priority: saved.priority || 'media',
+        department: saved.department || '',
+        assignedTo: saved.assignedTo || null,
+        dueDate: saved.dueDate || null
+      })
     }
   }
 
@@ -101,6 +120,33 @@ export default function DashboardPage() {
   async function handleArchiveFromFollowUp() {
     if (pendingFollowUp?.taskId) {
       await handleArchiveTask(pendingFollowUp.taskId)
+    }
+    setPendingFollowUp(null)
+  }
+
+  async function handleSendToSector(department) {
+    if (!pendingFollowUp) return
+    // Archive the original task
+    if (pendingFollowUp.taskId) {
+      await handleArchiveTask(pendingFollowUp.taskId)
+    }
+    // Create a new task in the new department
+    const res = await window.api.createTask({
+      title: pendingFollowUp.title,
+      description: pendingFollowUp.description,
+      priority: pendingFollowUp.priority,
+      department,
+      clientId: pendingFollowUp.clientId,
+      serviceId: pendingFollowUp.serviceId,
+      assignedTo: null,
+      dueDate: pendingFollowUp.dueDate,
+      status: 'pendente'
+    })
+    if (res.success) {
+      setTasks((prev) => [res.data, ...prev])
+      showToast(`Tarefa enviada para ${department}!`)
+    } else {
+      showToast(res.error || 'Erro ao criar tarefa.', 'error')
     }
     setPendingFollowUp(null)
   }
@@ -231,25 +277,10 @@ export default function DashboardPage() {
         />
       )}
 
-      {followUpDefaults && (
-        <TaskModal
-          defaultClientId={followUpDefaults.clientId}
-          users={users}
-          onClose={() => setFollowUpDefaults(null)}
-          onSaved={(saved) => {
-            handleTaskSaved(saved)
-            setFollowUpDefaults(null)
-          }}
-        />
-      )}
-
       {pendingFollowUp && (
         <FollowUpModal
           onArchive={handleArchiveFromFollowUp}
-          onFollowUp={() => {
-            setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
-            setPendingFollowUp(null)
-          }}
+          onSendToSector={handleSendToSector}
           onClose={() => setPendingFollowUp(null)}
         />
       )}

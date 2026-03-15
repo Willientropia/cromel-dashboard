@@ -57,13 +57,15 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
     setLoading(true)
     try {
       const [tasksRes, usersRes, servicesRes] = await Promise.all([
-        window.api.listTasks({}),
-        window.api.listUsersBasic(),
-        window.api.listServices(client.id)
+        window.api.listTasks({}).catch(() => ({ success: false })),
+        window.api.listUsersBasic().catch(() => ({ success: false })),
+        window.api.listServices(client.id).catch(() => ({ success: false }))
       ])
       if (tasksRes.success) setTasks(tasksRes.data.filter((t) => t.clientId === client.id))
       if (usersRes.success) setUsers(usersRes.data)
       if (servicesRes.success) setServices(servicesRes.data)
+    } catch (err) {
+      console.error('ClientDetailModal loadData error:', err)
     } finally {
       setLoading(false)
     }
