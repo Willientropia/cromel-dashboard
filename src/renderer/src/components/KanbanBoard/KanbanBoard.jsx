@@ -12,7 +12,7 @@ import KanbanColumn from './KanbanColumn'
 import KanbanCard from './KanbanCard'
 import PriorityBadge from '../PriorityBadge/PriorityBadge'
 
-const STATUSES = ['pendente', 'em-andamento']
+const STATUSES = ['pendente', 'em-andamento', 'concluido']
 
 export default function KanbanBoard({
   tasks,
@@ -20,7 +20,8 @@ export default function KanbanBoard({
   clientMap = {},
   showDept = false,
   onTaskMove,
-  onCardClick
+  onCardClick,
+  onArchiveTask
 }) {
   const [activeTask, setActiveTask] = useState(null)
 
@@ -76,6 +77,7 @@ export default function KanbanBoard({
             clientMap={clientMap}
             showDept={showDept}
             onCardClick={onCardClick}
+            onArchiveTask={status === 'concluido' ? onArchiveTask : undefined}
           />
         ))}
       </div>

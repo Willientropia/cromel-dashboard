@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import KanbanCard from './KanbanCard'
-import { IconClipboard, IconClock } from '../Icons/Icons'
+import { IconClipboard, IconClock, IconCheck } from '../Icons/Icons'
 
 const DEFAULT_LABELS = {
   pendente: 'Pendente',
-  'em-andamento': 'Em Andamento'
+  'em-andamento': 'Em Andamento',
+  concluido: 'Concluido'
 }
 
 const COLUMN_META = {
@@ -18,6 +19,11 @@ const COLUMN_META = {
     className: 'progress',
     Icon: IconClock,
     emptyText: 'Nenhuma tarefa em andamento'
+  },
+  concluido: {
+    className: 'done',
+    Icon: IconCheck,
+    emptyText: 'Nenhuma tarefa concluida'
   }
 }
 
@@ -30,7 +36,7 @@ function getStoredLabel(status) {
   }
 }
 
-export default function KanbanColumn({ status, tasks, users, clientMap = {}, showDept, onCardClick }) {
+export default function KanbanColumn({ status, tasks, users, clientMap = {}, showDept, onCardClick, onArchiveTask }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const meta = COLUMN_META[status]
   const [label, setLabel] = useState(() => getStoredLabel(status))
@@ -120,6 +126,7 @@ export default function KanbanColumn({ status, tasks, users, clientMap = {}, sho
               clientMap={clientMap}
               showDept={showDept}
               onClick={onCardClick}
+              onArchive={onArchiveTask}
             />
           ))
         )}

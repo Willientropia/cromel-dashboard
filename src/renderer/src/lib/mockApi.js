@@ -561,6 +561,18 @@ const mockApi = {
     return ok({ id })
   },
 
+  async archiveTask(id) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    const idx = store.tasks.findIndex((t) => t.id === id)
+    if (idx === -1) return err('Tarefa não encontrada.')
+    const task = store.tasks[idx]
+    if (task.status !== 'concluido') return err('Apenas tarefas concluídas podem ser arquivadas.')
+    task.archived = true
+    task.updatedAt = now()
+    return ok(task)
+  },
+
   async addComment(taskId, text) {
     const caller = getCallerUser()
     if (!caller) return err('Não autenticado.')
@@ -791,6 +803,7 @@ export async function setupMockApi() {
     createTask: (data) => mockApi.createTask(data),
     updateTask: (id, updates) => mockApi.updateTask(id, updates),
     deleteTask: (id) => mockApi.deleteTask(id),
+    archiveTask: (id) => mockApi.archiveTask(id),
     addComment: (taskId, text) => mockApi.addComment(taskId, text),
     listClients: () => mockApi.listClients(),
     getClient: (id) => mockApi.getClient(id),

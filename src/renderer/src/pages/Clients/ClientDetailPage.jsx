@@ -476,9 +476,20 @@ export default function ClientDetailPage() {
   )
 }
 
+function formatOpenTime(createdAt) {
+  if (!createdAt) return null
+  const ms = Date.now() - new Date(createdAt).getTime()
+  const hours = Math.floor(ms / 3600000)
+  const days = Math.floor(hours / 24)
+  if (days > 0) return `${days} dia${days !== 1 ? 's' : ''}`
+  if (hours > 0) return `${hours} hora${hours !== 1 ? 's' : ''}`
+  return 'menos de 1 hora'
+}
+
 function TaskRow({ task, users, onClick, showTiming = false }) {
   const assignee = users.find((u) => u.id === task.assignedTo)
   const duration = showTiming ? formatDuration(task.createdAt, task.completedAt) : null
+  const openTime = !showTiming ? formatOpenTime(task.createdAt) : null
   return (
     <div className="client-task-row" onClick={onClick}>
       <div style={{ flex: 1 }}>
@@ -496,14 +507,19 @@ function TaskRow({ task, users, onClick, showTiming = false }) {
           </span>
           <span>{STATUS_LABELS[task.status] || task.status}</span>
           {assignee && <span>@ {assignee.username}</span>}
+          {openTime && (
+            <span className="task-timing">
+              <IconClock size={11} /> Aberta ha {openTime}
+            </span>
+          )}
           {duration && (
             <span className="task-timing">
-              <IconClock size={11} /> Aberta por {duration}
+              <IconClock size={11} /> Concluida em {duration}
             </span>
           )}
           {showTiming && task.completedAt && (
             <span className="task-timing">
-              Concluida em {new Date(task.completedAt).toLocaleDateString('pt-BR')}
+              {new Date(task.completedAt).toLocaleDateString('pt-BR')}
             </span>
           )}
         </div>

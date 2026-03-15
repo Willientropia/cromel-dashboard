@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import ClientModal from '../../components/ClientModal/ClientModal'
+import ClientDetailModal from '../../components/ClientDetailModal/ClientDetailModal'
 import { IconUsers, IconPlus, IconRefresh } from '../../components/Icons/Icons'
 import { canManageClients } from '../../lib/permissions'
 
 export default function ClientsPage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [clients, setClients] = useState([])
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showNewClient, setShowNewClient] = useState(false)
+  const [selectedClient, setSelectedClient] = useState(null)
   const [toast, setToast] = useState(null)
 
   const canManage = canManageClients(user)
@@ -109,11 +109,13 @@ export default function ClientsPage() {
           <div className="client-grid">
             {filteredClients.map((c) => {
               const clientTasks = tasks.filter((t) => t.clientId === c.id)
+              const activeTasks = clientTasks.filter((t) => t.status !== 'concluido')
+              const doneTasks = clientTasks.filter((t) => t.status === 'concluido')
               return (
                 <div
                   key={c.id}
                   className="client-card"
-                  onClick={() => navigate(`/clients/${c.id}`)}
+                  onClick={() => setSelectedClient(c)}
                 >
                   <div className="client-card-name">{c.nome}</div>
                   <div className="client-card-info">
@@ -125,9 +127,18 @@ export default function ClientsPage() {
                     </div>
                   )}
                   {clientTasks.length > 0 && (
-                    <span className="client-card-tasks">
-                      {clientTasks.length} tarefa{clientTasks.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="client-card-tasks-info">
+                      {activeTasks.length > 0 && (
+                        <span className="client-card-tasks active">
+                          {activeTasks.length} ativa{activeTasks.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {doneTasks.length > 0 && (
+                        <span className="client-card-tasks done">
+                          {doneTasks.length} concluida{doneTasks.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               )
@@ -143,6 +154,14 @@ export default function ClientsPage() {
             handleClientSaved(s)
             setShowNewClient(false)
           }}
+        />
+      )}
+
+      {selectedClient && (
+        <ClientDetailModal
+          client={selectedClient}
+          onClose={() => { setSelectedClient(null); loadData() }}
+          onClientUpdated={loadData}
         />
       )}
 
