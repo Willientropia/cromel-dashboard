@@ -2251,6 +2251,7 @@ table.user-table tr:hover td {
   background: var(--white);
   border-radius: var(--radius-lg);
   padding: 16px 20px;
+  cursor: pointer;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
   cursor: pointer;
