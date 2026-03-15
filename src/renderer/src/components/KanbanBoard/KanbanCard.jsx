@@ -43,7 +43,7 @@ function getDueDateInfo(dueDateStr) {
   return { label: `Faltam ${diffDays} dias`, className: 'due-normal' }
 }
 
-export default function KanbanCard({ task, users = [], showDept = false, onClick }) {
+export default function KanbanCard({ task, users = [], clientMap = {}, showDept = false, onClick }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { task }
@@ -55,6 +55,7 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
   }
 
   const assignedUser = users.find((u) => u.id === task.assignedTo)
+  const clientName = task.clientId && clientMap[task.clientId] ? clientMap[task.clientId].nome : null
   const dueInfo = task.status !== 'concluido' ? getDueDateInfo(task.dueDate) : null
 
   return (
@@ -68,6 +69,9 @@ export default function KanbanCard({ task, users = [], showDept = false, onClick
       <span className="kanban-card-drag-handle" {...listeners} {...attributes} title="Arrastar">
         <IconGripVertical size={14} />
       </span>
+
+      {/* Client label */}
+      {clientName && <span className="kanban-card-client">{clientName}</span>}
 
       {/* Title */}
       <div className="kanban-card-header">

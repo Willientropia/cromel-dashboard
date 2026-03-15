@@ -6,6 +6,8 @@ import LoginPage from './pages/Login/LoginPage'
 import DashboardPage from './pages/Dashboard/DashboardPage'
 import AdminPanelPage from './pages/AdminPanel/AdminPanelPage'
 import ProfilePage from './pages/Profile/ProfilePage'
+import ClientsPage from './pages/Clients/ClientsPage'
+import ClientDetailPage from './pages/Clients/ClientDetailPage'
 import NotFoundPage from './pages/NotFound/NotFoundPage'
 
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -56,6 +58,8 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="clients" element={<ClientsPage />} />
+        <Route path="clients/:clientId" element={<ClientDetailPage />} />
         <Route
           path="admin"
           element={

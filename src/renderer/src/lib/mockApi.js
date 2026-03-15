@@ -2,6 +2,7 @@
 // Mirrors the same schema and security rules as the Electron main process
 
 const SALT = 'cromel-salt'
+const CLIENT_MANAGER_DEPTS = ['Comercial', 'Financeiro']
 
 async function hashPassword(password) {
   const encoder = new TextEncoder()
@@ -21,12 +22,10 @@ function now() {
 }
 
 // ─── Seed data ──────────────────────────────────────────────────────────
-const ADMIN_PASS_HASH =
-  'c4e2b1bd73e0b62a8b5f73c0cc2d75dd87dd1f24b19e01b56f7f879e0a55d93b' // placeholder, recomputed at init
-
 const store = {
   users: [],
   tasks: [],
+  clients: [],
   session: { userId: null }
 }
 
@@ -36,6 +35,50 @@ async function seedData() {
   const fin1Id = randomId()
   const eng1Id = randomId()
   const lab1Id = randomId()
+  const com1Id = randomId()
+  const cam1Id = randomId()
+
+  // Seed clients
+  const t = now()
+  const client1Id = randomId()
+  const client2Id = randomId()
+  const client3Id = randomId()
+
+  store.clients = [
+    {
+      id: client1Id,
+      nome: 'Construtora Silva',
+      cidade: 'Sao Paulo',
+      empresa: 'Silva & Filhos Ltda',
+      telefone: '(11) 99999-0000',
+      endereco: 'Rua das Flores, 123',
+      createdBy: com1Id,
+      createdAt: t,
+      updatedAt: t
+    },
+    {
+      id: client2Id,
+      nome: 'Engenharia Costa',
+      cidade: 'Rio de Janeiro',
+      empresa: 'Costa Engenharia S.A.',
+      telefone: '(21) 98888-1111',
+      endereco: 'Av. Brasil, 456',
+      createdBy: adminId,
+      createdAt: t,
+      updatedAt: t
+    },
+    {
+      id: client3Id,
+      nome: 'Laboratorio Nacional',
+      cidade: 'Belo Horizonte',
+      empresa: 'LabNacional Ltda',
+      telefone: '(31) 97777-2222',
+      endereco: 'Rua dos Testes, 789',
+      createdBy: adminId,
+      createdAt: t,
+      updatedAt: t
+    }
+  ]
 
   store.users = [
     {
@@ -44,7 +87,7 @@ async function seedData() {
       passwordHash: adminHash,
       plainPassword: 'admin123',
       role: 'admin',
-      department: null,
+      departments: [],
       createdAt: now()
     },
     {
@@ -53,7 +96,7 @@ async function seedData() {
       passwordHash: await hashPassword('senha123'),
       plainPassword: 'senha123',
       role: 'user',
-      department: 'Financeiro',
+      departments: ['Financeiro'],
       createdAt: now()
     },
     {
@@ -62,7 +105,7 @@ async function seedData() {
       passwordHash: await hashPassword('senha123'),
       plainPassword: 'senha123',
       role: 'user',
-      department: 'Engenharia',
+      departments: ['Engenharia'],
       createdAt: now()
     },
     {
@@ -71,12 +114,29 @@ async function seedData() {
       passwordHash: await hashPassword('senha123'),
       plainPassword: 'senha123',
       role: 'user',
-      department: 'Laboratorio',
+      departments: ['Laboratorio'],
+      createdAt: now()
+    },
+    {
+      id: com1Id,
+      username: 'ana.comercial',
+      passwordHash: await hashPassword('senha123'),
+      plainPassword: 'senha123',
+      role: 'user',
+      departments: ['Comercial', 'Financeiro'],
+      createdAt: now()
+    },
+    {
+      id: cam1Id,
+      username: 'carlos.campo',
+      passwordHash: await hashPassword('senha123'),
+      plainPassword: 'senha123',
+      role: 'user',
+      departments: ['Campo', 'Engenharia'],
       createdAt: now()
     }
   ]
 
-  const t = now()
   // Helper to create future dates for seed data
   function futureDate(days) {
     const d = new Date()
@@ -90,14 +150,15 @@ async function seedData() {
   store.tasks = [
     {
       id: randomId(),
-      title: 'Revisar relatório mensal',
-      description: 'Verificar todos os lançamentos do mês de fevereiro.',
+      title: 'Revisar relatorio mensal',
+      description: 'Verificar todos os lancamentos do mes de fevereiro.',
       status: 'pendente',
       priority: 'alta',
       department: 'Financeiro',
       createdBy: adminId,
       assignedTo: fin1Id,
       dueDate: futureDate(2),
+      clientId: client1Id,
       comments: [
         {
           id: randomId(),
@@ -120,34 +181,37 @@ async function seedData() {
       createdBy: fin1Id,
       assignedTo: null,
       dueDate: futureDate(7),
+      clientId: client1Id,
       comments: [],
       createdAt: t,
       updatedAt: t
     },
     {
       id: randomId(),
-      title: 'Análise estrutural do projeto B',
-      description: 'Calcular carga máxima para a nova estrutura do galpão.',
+      title: 'Analise estrutural do projeto B',
+      description: 'Calcular carga maxima para a nova estrutura do galpao.',
       status: 'em-andamento',
       priority: 'alta',
       department: 'Engenharia',
       createdBy: adminId,
       assignedTo: eng1Id,
       dueDate: futureDate(1),
+      clientId: client2Id,
       comments: [],
       createdAt: t,
       updatedAt: t
     },
     {
       id: randomId(),
-      title: 'Atualizar documentação técnica',
-      description: 'Revisar e atualizar os manuais de operação.',
+      title: 'Atualizar documentacao tecnica',
+      description: 'Revisar e atualizar os manuais de operacao.',
       status: 'pendente',
       priority: 'baixa',
       department: 'Engenharia',
       createdBy: eng1Id,
       assignedTo: null,
       dueDate: futureDate(14),
+      clientId: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -155,19 +219,20 @@ async function seedData() {
     {
       id: randomId(),
       title: 'Calibrar equipamentos',
-      description: 'Calibração semestral dos equipamentos de medição.',
+      description: 'Calibracao semestral dos equipamentos de medicao.',
       status: 'concluido',
       priority: 'alta',
       department: 'Laboratorio',
       createdBy: adminId,
       assignedTo: lab1Id,
       dueDate: null,
+      clientId: client3Id,
       comments: [
         {
           id: randomId(),
           userId: lab1Id,
           username: 'pedro.laboratorio',
-          text: 'Calibração concluída com sucesso. Relatório enviado.',
+          text: 'Calibracao concluida com sucesso. Relatorio enviado.',
           createdAt: t
         }
       ],
@@ -176,7 +241,7 @@ async function seedData() {
     },
     {
       id: randomId(),
-      title: 'Preparar amostras para análise',
+      title: 'Preparar amostras para analise',
       description: 'Preparar e catalogar amostras do lote 2024-03.',
       status: 'pendente',
       priority: 'media',
@@ -184,6 +249,37 @@ async function seedData() {
       createdBy: lab1Id,
       assignedTo: null,
       dueDate: futureDate(5),
+      clientId: client3Id,
+      comments: [],
+      createdAt: t,
+      updatedAt: t
+    },
+    {
+      id: randomId(),
+      title: 'Elaborar proposta comercial',
+      description: 'Preparar proposta para o cliente Construtora Silva.',
+      status: 'pendente',
+      priority: 'alta',
+      department: 'Comercial',
+      createdBy: com1Id,
+      assignedTo: com1Id,
+      dueDate: futureDate(3),
+      clientId: client1Id,
+      comments: [],
+      createdAt: t,
+      updatedAt: t
+    },
+    {
+      id: randomId(),
+      title: 'Visita tecnica ao canteiro',
+      description: 'Realizar visita tecnica ao canteiro de obras do cliente.',
+      status: 'em-andamento',
+      priority: 'media',
+      department: 'Campo',
+      createdBy: cam1Id,
+      assignedTo: cam1Id,
+      dueDate: futureDate(1),
+      clientId: client2Id,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -204,7 +300,7 @@ function getCallerUser() {
   return store.users.find((u) => u.id === store.session.userId) || null
 }
 
-function safeUser(u, includePassword = false) {
+function safeUser(u) {
   if (!u) return null
   const { passwordHash, ...safe } = u
   return safe
@@ -241,7 +337,15 @@ const mockApi = {
   async listUsersBasic() {
     const caller = getCallerUser()
     if (!caller) return err('Nao autenticado.')
-    return ok(store.users.map((u) => ({ id: u.id, username: u.username, photo: u.photo || null })))
+    return ok(
+      store.users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        photo: u.photo || null,
+        departments: u.departments || [],
+        role: u.role
+      }))
+    )
   },
 
   async listUsers() {
@@ -263,7 +367,7 @@ const mockApi = {
       passwordHash: await hashPassword(data.password),
       plainPassword: data.password,
       role: 'user',
-      department: data.department,
+      departments: Array.isArray(data.departments) ? data.departments : [],
       createdAt: now()
     }
     store.users.push(user)
@@ -287,7 +391,9 @@ const mockApi = {
       user.passwordHash = await hashPassword(data.password)
       user.plainPassword = data.password
     }
-    if (data.department !== undefined) user.department = data.department
+    if (data.departments !== undefined) {
+      user.departments = Array.isArray(data.departments) ? data.departments : []
+    }
     store.users[idx] = user
     return ok(safeUser(user))
   },
@@ -311,21 +417,20 @@ const mockApi = {
     if (!caller) return err('Não autenticado.')
     let tasks = [...store.tasks]
     if (caller.role !== 'admin') {
-      tasks = tasks.filter((t) => t.department === caller.department)
+      tasks = tasks.filter((t) => caller.departments.includes(t.department))
     } else if (filters && filters.department) {
       tasks = tasks.filter((t) => t.department === filters.department)
     }
     if (filters && filters.status) tasks = tasks.filter((t) => t.status === filters.status)
     if (filters && filters.priority) tasks = tasks.filter((t) => t.priority === filters.priority)
+    if (filters && filters.clientId) tasks = tasks.filter((t) => t.clientId === filters.clientId)
     return ok(tasks.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))
   },
 
   async createTask(data) {
     const caller = getCallerUser()
     if (!caller) return err('Não autenticado.')
-    if (caller.role !== 'admin' && data.department !== caller.department) {
-      return err('Sem permissão para criar tarefas em outro departamento.')
-    }
+    // Any authenticated user can create tasks for any department
     const t = now()
     const task = {
       id: randomId(),
@@ -337,6 +442,7 @@ const mockApi = {
       createdBy: caller.id,
       assignedTo: data.assignedTo || null,
       dueDate: data.dueDate || null,
+      clientId: data.clientId || null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -351,14 +457,12 @@ const mockApi = {
     const idx = store.tasks.findIndex((t) => t.id === id)
     if (idx === -1) return err('Tarefa não encontrada.')
     const task = store.tasks[idx]
-    if (caller.role !== 'admin' && task.department !== caller.department) {
+    if (caller.role !== 'admin' && !caller.departments.includes(task.department)) {
       return err('Sem permissão para editar tarefas de outro departamento.')
     }
-    const safe = { ...updates }
-    if (caller.role !== 'admin') delete safe.department
     const updated = {
       ...task,
-      ...safe,
+      ...updates,
       id: task.id,
       createdBy: task.createdBy,
       comments: task.comments,
@@ -385,7 +489,7 @@ const mockApi = {
     const idx = store.tasks.findIndex((t) => t.id === taskId)
     if (idx === -1) return err('Tarefa não encontrada.')
     const task = store.tasks[idx]
-    if (caller.role !== 'admin' && task.department !== caller.department) {
+    if (caller.role !== 'admin' && !caller.departments.includes(task.department)) {
       return err('Sem permissão.')
     }
     const comment = {
@@ -398,6 +502,86 @@ const mockApi = {
     task.comments.push(comment)
     task.updatedAt = now()
     return ok(comment)
+  },
+
+  // ─── Clients ────────────────────────────────────────────────────────
+  async listClients() {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    return ok([...store.clients].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))
+  },
+
+  async getClient(id) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    const client = store.clients.find((c) => c.id === id)
+    if (!client) return err('Cliente nao encontrado.')
+    return ok(client)
+  },
+
+  async createClient(data) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (
+      caller.role !== 'admin' &&
+      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+    ) {
+      return err('Sem permissao para gerenciar clientes.')
+    }
+    if (!data.nome || !data.nome.trim()) return err('Nome do cliente e obrigatorio.')
+    const t = now()
+    const client = {
+      id: randomId(),
+      nome: data.nome.trim(),
+      cidade: data.cidade?.trim() || '',
+      empresa: data.empresa?.trim() || '',
+      telefone: data.telefone?.trim() || '',
+      endereco: data.endereco?.trim() || '',
+      createdBy: caller.id,
+      createdAt: t,
+      updatedAt: t
+    }
+    store.clients.push(client)
+    return ok(client)
+  },
+
+  async updateClient(id, data) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (
+      caller.role !== 'admin' &&
+      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+    ) {
+      return err('Sem permissao para gerenciar clientes.')
+    }
+    const idx = store.clients.findIndex((c) => c.id === id)
+    if (idx === -1) return err('Cliente nao encontrado.')
+    const client = store.clients[idx]
+    const safe = {}
+    if (data.nome !== undefined) safe.nome = data.nome.trim()
+    if (data.cidade !== undefined) safe.cidade = data.cidade.trim()
+    if (data.empresa !== undefined) safe.empresa = data.empresa.trim()
+    if (data.telefone !== undefined) safe.telefone = data.telefone.trim()
+    if (data.endereco !== undefined) safe.endereco = data.endereco.trim()
+    const updated = { ...client, ...safe, updatedAt: now() }
+    store.clients[idx] = updated
+    return ok(updated)
+  },
+
+  async deleteClient(id) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (
+      caller.role !== 'admin' &&
+      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+    ) {
+      return err('Sem permissao para gerenciar clientes.')
+    }
+    const idx = store.clients.findIndex((c) => c.id === id)
+    if (idx === -1) return err('Cliente nao encontrado.')
+    store.clients.splice(idx, 1)
+    store.tasks = store.tasks.map((t) => (t.clientId === id ? { ...t, clientId: null } : t))
+    return ok({ id })
   },
 
   async updateProfile(data) {
@@ -433,6 +617,11 @@ export async function setupMockApi() {
     updateTask: (id, updates) => mockApi.updateTask(id, updates),
     deleteTask: (id) => mockApi.deleteTask(id),
     addComment: (taskId, text) => mockApi.addComment(taskId, text),
+    listClients: () => mockApi.listClients(),
+    getClient: (id) => mockApi.getClient(id),
+    createClient: (data) => mockApi.createClient(data),
+    updateClient: (id, data) => mockApi.updateClient(id, data),
+    deleteClient: (id) => mockApi.deleteClient(id),
     updateProfile: (data) => mockApi.updateProfile(data)
   }
 }

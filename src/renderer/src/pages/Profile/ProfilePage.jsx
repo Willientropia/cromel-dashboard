@@ -119,7 +119,7 @@ export default function ProfilePage() {
               />
               <h3 className="profile-username">{user?.username}</h3>
               <span className="profile-role">
-                {user?.role === 'admin' ? 'Administrador' : user?.department || 'Usuario'}
+                {user?.role === 'admin' ? 'Administrador' : user?.departments?.join(', ') || 'Usuario'}
               </span>
             </div>
 
@@ -132,10 +132,10 @@ export default function ProfilePage() {
                 <span className="profile-info-label">Funcao</span>
                 <span className="profile-info-value">{user?.role === 'admin' ? 'Administrador' : 'Usuario'}</span>
               </div>
-              {user?.department && (
+              {user?.departments?.length > 0 && (
                 <div className="profile-info-row">
-                  <span className="profile-info-label">Departamento</span>
-                  <span className="profile-info-value">{user.department}</span>
+                  <span className="profile-info-label">Departamento{user.departments.length > 1 ? 's' : ''}</span>
+                  <span className="profile-info-value">{user.departments.join(', ')}</span>
                 </div>
               )}
               <div className="profile-info-row">

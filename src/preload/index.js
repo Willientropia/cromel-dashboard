@@ -24,6 +24,13 @@ contextBridge.exposeInMainWorld('api', {
   deleteTask: (id) => invoke('db:tasks:delete', { id }),
   addComment: (taskId, text) => invoke('db:tasks:comment', { taskId, text }),
 
+  // Clients
+  listClients: () => invoke('db:clients:list'),
+  getClient: (id) => invoke('db:clients:get', { id }),
+  createClient: (data) => invoke('db:clients:create', data),
+  updateClient: (id, data) => invoke('db:clients:update', { id, ...data }),
+  deleteClient: (id) => invoke('db:clients:delete', { id }),
+
   // Profile
   updateProfile: (data) => invoke('db:profile:update', data)
 })

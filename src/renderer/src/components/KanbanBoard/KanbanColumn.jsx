@@ -36,7 +36,7 @@ function getStoredLabel(status) {
   }
 }
 
-export default function KanbanColumn({ status, tasks, users, showDept, onCardClick }) {
+export default function KanbanColumn({ status, tasks, users, clientMap = {}, showDept, onCardClick }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const meta = COLUMN_META[status]
   const [label, setLabel] = useState(() => getStoredLabel(status))
@@ -123,6 +123,7 @@ export default function KanbanColumn({ status, tasks, users, showDept, onCardCli
               key={task.id}
               task={task}
               users={users}
+              clientMap={clientMap}
               showDept={showDept}
               onClick={onCardClick}
             />
