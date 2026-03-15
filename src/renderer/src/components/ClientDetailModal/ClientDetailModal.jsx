@@ -173,8 +173,8 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
           <div>
             <h2>{client.nome}</h2>
             <div className="text-sm text-muted" style={{ marginTop: 2 }}>
-              {[client.dadosObra, client.tipoObra].filter(Boolean).join(' \u2022 ')}
-              {client.orc && <> \u2022 {client.orc}</>}
+              {[client.dadosObra, client.tipoObra].filter(Boolean).join(' • ')}
+              {client.orc && <> • {client.orc}</>}
             </div>
           </div>
           <button className="btn-icon" onClick={onClose}><IconClose size={16} /></button>

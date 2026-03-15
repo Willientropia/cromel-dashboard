@@ -478,10 +478,10 @@ const mockApi = {
     const caller = getCallerUser()
     if (!caller) return err('Não autenticado.')
     let tasks = [...store.tasks]
-    if (caller.role !== 'admin') {
+    if (caller.role === 'admin') {
+      if (filters && filters.department) tasks = tasks.filter((t) => t.department === filters.department)
+    } else if (!canManageClientsCheck(caller)) {
       tasks = tasks.filter((t) => caller.departments.includes(t.department))
-    } else if (filters && filters.department) {
-      tasks = tasks.filter((t) => t.department === filters.department)
     }
     if (filters && filters.status) tasks = tasks.filter((t) => t.status === filters.status)
     if (filters && filters.priority) tasks = tasks.filter((t) => t.priority === filters.priority)
