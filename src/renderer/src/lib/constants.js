@@ -18,7 +18,7 @@ export const DEPT_COLORS = {
   Campo: '#00695C'
 }
 
-export const CLIENT_MANAGER_DEPTS = ['Comercial', 'Financeiro']
+export const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
 
 export const STATUSES = [
   { value: 'pendente', label: 'Pendente' },
@@ -30,4 +30,15 @@ export const PRIORITIES = [
   { value: 'baixa', label: 'Baixa' },
   { value: 'media', label: 'Media' },
   { value: 'alta', label: 'Alta' }
+]
+
+export const TIPO_OBRA_OPTIONS = [
+  'Protecao radiologica',
+  'Obra eletrica',
+  'Obra civil',
+  'Transporte Hospitalar',
+  'Visita tecnica Engenheiro',
+  'Visita tecnica Padrao',
+  'Visita Comercial',
+  'Outros'
 ]

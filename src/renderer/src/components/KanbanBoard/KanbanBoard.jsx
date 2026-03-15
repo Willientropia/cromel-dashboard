@@ -12,7 +12,7 @@ import KanbanColumn from './KanbanColumn'
 import KanbanCard from './KanbanCard'
 import PriorityBadge from '../PriorityBadge/PriorityBadge'
 
-const STATUSES = ['pendente', 'em-andamento', 'concluido']
+const STATUSES = ['pendente', 'em-andamento']
 
 export default function KanbanBoard({
   tasks,
