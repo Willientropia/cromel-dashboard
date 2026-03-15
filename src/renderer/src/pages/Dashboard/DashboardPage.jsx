@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
+import FollowUpModal from '../../components/FollowUpModal/FollowUpModal'
 import { IconBolt, IconRefresh, IconPlus, DeptIcon } from '../../components/Icons/Icons'
 import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
 
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [filterDept, setFilterDept] = useState('')
   const [toast, setToast] = useState(null)
   const [followUpDefaults, setFollowUpDefaults] = useState(null)
+  const [pendingFollowUp, setPendingFollowUp] = useState(null)
 
   const isAdmin = user?.role === 'admin'
   const depts = user?.departments || []
@@ -58,17 +60,6 @@ export default function DashboardPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
-    } else if (
-      newStatus === 'concluido' &&
-      task?.status !== 'concluido' &&
-      task?.clientId
-    ) {
-      const wantsFollowUp = window.confirm(
-        'Tarefa concluida! Deseja criar uma tarefa de acompanhamento para outro departamento?'
-      )
-      if (wantsFollowUp) {
-        setFollowUpDefaults({ clientId: task.clientId, originalTitle: task.title })
-      }
     }
   }
 
@@ -83,6 +74,11 @@ export default function DashboardPage() {
       return [saved, ...prev]
     })
     showToast('Tarefa salva com sucesso!')
+
+    // Show follow-up modal when task is completed
+    if (saved.status === 'concluido' && saved.clientId) {
+      setPendingFollowUp({ clientId: saved.clientId, originalTitle: saved.title })
+    }
   }
 
   function handleTaskDeleted(id) {
@@ -90,7 +86,8 @@ export default function DashboardPage() {
     showToast('Tarefa excluida.')
   }
 
-  let filteredTasks = tasks
+  // Filter out completed tasks from dashboard
+  let filteredTasks = tasks.filter((t) => t.status !== 'concluido')
   if (filterDept) filteredTasks = filteredTasks.filter((t) => t.department === filterDept)
   if (filterPriority) filteredTasks = filteredTasks.filter((t) => t.priority === filterPriority)
 
@@ -199,10 +196,6 @@ export default function DashboardPage() {
             handleTaskDeleted(id)
             setSelectedTask(null)
           }}
-          onRequestFollowUp={(defaults) => {
-            setSelectedTask(null)
-            setFollowUpDefaults(defaults)
-          }}
         />
       )}
 
@@ -227,6 +220,17 @@ export default function DashboardPage() {
             handleTaskSaved(saved)
             setFollowUpDefaults(null)
           }}
+        />
+      )}
+
+      {pendingFollowUp && (
+        <FollowUpModal
+          onArchive={() => setPendingFollowUp(null)}
+          onFollowUp={() => {
+            setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
+            setPendingFollowUp(null)
+          }}
+          onClose={() => setPendingFollowUp(null)}
         />
       )}
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconClose, IconTrash } from '../Icons/Icons'
+import { TIPO_OBRA_OPTIONS } from '../../lib/constants'
 import ConfirmDeleteModal from '../ConfirmDeleteModal/ConfirmDeleteModal'
 
 export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
@@ -7,10 +8,9 @@ export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
 
   const [form, setForm] = useState({
     nome: client?.nome || '',
-    cidade: client?.cidade || '',
-    empresa: client?.empresa || '',
-    telefone: client?.telefone || '',
-    endereco: client?.endereco || ''
+    dadosObra: client?.dadosObra || '',
+    orc: client?.orc || '',
+    tipoObra: client?.tipoObra || ''
   })
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -80,56 +80,49 @@ export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
           <div className="modal-body">
             <form id="client-form" onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">Nome *</label>
+                <label className="form-label">Nome / Tomador *</label>
                 <input
                   className="form-input"
                   value={form.nome}
                   onChange={(e) => set('nome', e.target.value)}
-                  placeholder="Nome do cliente"
+                  placeholder="Nome do cliente ou tomador"
                   maxLength={100}
                   required
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Cidade</label>
-                  <input
-                    className="form-input"
-                    value={form.cidade}
-                    onChange={(e) => set('cidade', e.target.value)}
-                    placeholder="Cidade"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Empresa</label>
-                  <input
-                    className="form-input"
-                    value={form.empresa}
-                    onChange={(e) => set('empresa', e.target.value)}
-                    placeholder="Nome da empresa"
-                  />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Dados da Obra (Local)</label>
+                <input
+                  className="form-input"
+                  value={form.dadosObra}
+                  onChange={(e) => set('dadosObra', e.target.value)}
+                  placeholder="Local ou dados da obra"
+                />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Telefone</label>
+                  <label className="form-label">ORC/OV/OSS</label>
                   <input
                     className="form-input"
-                    value={form.telefone}
-                    onChange={(e) => set('telefone', e.target.value)}
-                    placeholder="(00) 00000-0000"
+                    value={form.orc}
+                    onChange={(e) => set('orc', e.target.value)}
+                    placeholder="ORC-2025-001"
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Endereco</label>
-                  <input
-                    className="form-input"
-                    value={form.endereco}
-                    onChange={(e) => set('endereco', e.target.value)}
-                    placeholder="Endereco completo"
-                  />
+                  <label className="form-label">Tipo de Obra</label>
+                  <select
+                    className="form-select"
+                    value={form.tipoObra}
+                    onChange={(e) => set('tipoObra', e.target.value)}
+                  >
+                    <option value="">-- Selecionar --</option>
+                    {TIPO_OBRA_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

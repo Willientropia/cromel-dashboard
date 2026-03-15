@@ -2,7 +2,8 @@
 // Mirrors the same schema and security rules as the Electron main process
 
 const SALT = 'cromel-salt'
-const CLIENT_MANAGER_DEPTS = ['Comercial', 'Financeiro']
+const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
+const TRASH_RETENTION_DAYS = 3
 
 async function hashPassword(password) {
   const encoder = new TextEncoder()
@@ -26,6 +27,8 @@ const store = {
   users: [],
   tasks: [],
   clients: [],
+  services: [],
+  trash: [],
   session: { userId: null }
 }
 
@@ -38,20 +41,22 @@ async function seedData() {
   const com1Id = randomId()
   const cam1Id = randomId()
 
-  // Seed clients
   const t = now()
   const client1Id = randomId()
   const client2Id = randomId()
   const client3Id = randomId()
 
+  const svc1Id = randomId()
+  const svc2Id = randomId()
+  const svc3Id = randomId()
+
   store.clients = [
     {
       id: client1Id,
       nome: 'Construtora Silva',
-      cidade: 'Sao Paulo',
-      empresa: 'Silva & Filhos Ltda',
-      telefone: '(11) 99999-0000',
-      endereco: 'Rua das Flores, 123',
+      dadosObra: 'Sao Paulo - Rua das Flores, 123',
+      orc: 'ORC-2025-001',
+      tipoObra: 'Obra civil',
       createdBy: com1Id,
       createdAt: t,
       updatedAt: t
@@ -59,10 +64,9 @@ async function seedData() {
     {
       id: client2Id,
       nome: 'Engenharia Costa',
-      cidade: 'Rio de Janeiro',
-      empresa: 'Costa Engenharia S.A.',
-      telefone: '(21) 98888-1111',
-      endereco: 'Av. Brasil, 456',
+      dadosObra: 'Rio de Janeiro - Av. Brasil, 456',
+      orc: 'OV-2025-015',
+      tipoObra: 'Protecao radiologica',
       createdBy: adminId,
       createdAt: t,
       updatedAt: t
@@ -70,13 +74,42 @@ async function seedData() {
     {
       id: client3Id,
       nome: 'Laboratorio Nacional',
-      cidade: 'Belo Horizonte',
-      empresa: 'LabNacional Ltda',
-      telefone: '(31) 97777-2222',
-      endereco: 'Rua dos Testes, 789',
+      dadosObra: 'Belo Horizonte - Rua dos Testes, 789',
+      orc: 'OSS-2025-003',
+      tipoObra: 'Visita tecnica Padrao',
       createdBy: adminId,
       createdAt: t,
       updatedAt: t
+    }
+  ]
+
+  store.services = [
+    {
+      id: svc1Id,
+      clientId: client1Id,
+      nome: 'Reforma Andar 3',
+      status: 'ativo',
+      createdAt: t,
+      updatedAt: t,
+      completedAt: null
+    },
+    {
+      id: svc2Id,
+      clientId: client2Id,
+      nome: 'Blindagem Sala RX',
+      status: 'ativo',
+      createdAt: t,
+      updatedAt: t,
+      completedAt: null
+    },
+    {
+      id: svc3Id,
+      clientId: client3Id,
+      nome: 'Calibracao Semestral',
+      status: 'concluido',
+      createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+      updatedAt: t,
+      completedAt: t
     }
   ]
 
@@ -137,7 +170,6 @@ async function seedData() {
     }
   ]
 
-  // Helper to create future dates for seed data
   function futureDate(days) {
     const d = new Date()
     d.setDate(d.getDate() + days)
@@ -146,6 +178,8 @@ async function seedData() {
     const dd = String(d.getDate()).padStart(2, '0')
     return `${y}-${m}-${dd}`
   }
+
+  const completedAt = new Date(Date.now() - 2 * 86400000).toISOString()
 
   store.tasks = [
     {
@@ -159,6 +193,8 @@ async function seedData() {
       assignedTo: fin1Id,
       dueDate: futureDate(2),
       clientId: client1Id,
+      serviceId: svc1Id,
+      completedAt: null,
       comments: [
         {
           id: randomId(),
@@ -182,6 +218,8 @@ async function seedData() {
       assignedTo: null,
       dueDate: futureDate(7),
       clientId: client1Id,
+      serviceId: svc1Id,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -197,6 +235,8 @@ async function seedData() {
       assignedTo: eng1Id,
       dueDate: futureDate(1),
       clientId: client2Id,
+      serviceId: svc2Id,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -212,6 +252,8 @@ async function seedData() {
       assignedTo: null,
       dueDate: futureDate(14),
       clientId: null,
+      serviceId: null,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -227,6 +269,8 @@ async function seedData() {
       assignedTo: lab1Id,
       dueDate: null,
       clientId: client3Id,
+      serviceId: svc3Id,
+      completedAt: completedAt,
       comments: [
         {
           id: randomId(),
@@ -236,7 +280,7 @@ async function seedData() {
           createdAt: t
         }
       ],
-      createdAt: t,
+      createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
       updatedAt: t
     },
     {
@@ -250,6 +294,8 @@ async function seedData() {
       assignedTo: null,
       dueDate: futureDate(5),
       clientId: client3Id,
+      serviceId: null,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -265,6 +311,8 @@ async function seedData() {
       assignedTo: com1Id,
       dueDate: futureDate(3),
       clientId: client1Id,
+      serviceId: svc1Id,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -280,6 +328,8 @@ async function seedData() {
       assignedTo: cam1Id,
       dueDate: futureDate(1),
       clientId: client2Id,
+      serviceId: svc2Id,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -304,6 +354,18 @@ function safeUser(u) {
   if (!u) return null
   const { passwordHash, ...safe } = u
   return safe
+}
+
+function canManageClientsCheck(caller) {
+  return (
+    caller.role === 'admin' ||
+    caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+  )
+}
+
+function purgeExpiredTrash() {
+  const cutoff = Date.now() - TRASH_RETENTION_DAYS * 86400000
+  store.trash = store.trash.filter((t) => new Date(t.deletedAt).getTime() > cutoff)
 }
 
 // ─── Mock API implementation ─────────────────────────────────────────────
@@ -424,13 +486,13 @@ const mockApi = {
     if (filters && filters.status) tasks = tasks.filter((t) => t.status === filters.status)
     if (filters && filters.priority) tasks = tasks.filter((t) => t.priority === filters.priority)
     if (filters && filters.clientId) tasks = tasks.filter((t) => t.clientId === filters.clientId)
+    if (filters && filters.serviceId) tasks = tasks.filter((t) => t.serviceId === filters.serviceId)
     return ok(tasks.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))
   },
 
   async createTask(data) {
     const caller = getCallerUser()
     if (!caller) return err('Não autenticado.')
-    // Any authenticated user can create tasks for any department
     const t = now()
     const task = {
       id: randomId(),
@@ -443,6 +505,8 @@ const mockApi = {
       assignedTo: data.assignedTo || null,
       dueDate: data.dueDate || null,
       clientId: data.clientId || null,
+      serviceId: data.serviceId || null,
+      completedAt: null,
       comments: [],
       createdAt: t,
       updatedAt: t
@@ -460,6 +524,12 @@ const mockApi = {
     if (caller.role !== 'admin' && !caller.departments.includes(task.department)) {
       return err('Sem permissão para editar tarefas de outro departamento.')
     }
+    let completedAt = task.completedAt
+    if (updates.status === 'concluido' && task.status !== 'concluido') {
+      completedAt = now()
+    } else if (updates.status && updates.status !== 'concluido') {
+      completedAt = null
+    }
     const updated = {
       ...task,
       ...updates,
@@ -467,6 +537,7 @@ const mockApi = {
       createdBy: task.createdBy,
       comments: task.comments,
       createdAt: task.createdAt,
+      completedAt,
       updatedAt: now()
     }
     store.tasks[idx] = updated
@@ -475,9 +546,17 @@ const mockApi = {
 
   async deleteTask(id) {
     const caller = getCallerUser()
-    if (!caller || caller.role !== 'admin') return err('Acesso negado.')
+    if (!caller) return err('Nao autenticado.')
+    if (!canManageClientsCheck(caller)) return err('Acesso negado.')
     const idx = store.tasks.findIndex((t) => t.id === id)
     if (idx === -1) return err('Tarefa não encontrada.')
+    const task = store.tasks[idx]
+    store.trash.push({
+      type: 'task',
+      item: { ...task },
+      deletedAt: now(),
+      deletedBy: caller.id
+    })
     store.tasks.splice(idx, 1)
     return ok({ id })
   },
@@ -522,21 +601,15 @@ const mockApi = {
   async createClient(data) {
     const caller = getCallerUser()
     if (!caller) return err('Nao autenticado.')
-    if (
-      caller.role !== 'admin' &&
-      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
-    ) {
-      return err('Sem permissao para gerenciar clientes.')
-    }
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar clientes.')
     if (!data.nome || !data.nome.trim()) return err('Nome do cliente e obrigatorio.')
     const t = now()
     const client = {
       id: randomId(),
       nome: data.nome.trim(),
-      cidade: data.cidade?.trim() || '',
-      empresa: data.empresa?.trim() || '',
-      telefone: data.telefone?.trim() || '',
-      endereco: data.endereco?.trim() || '',
+      dadosObra: data.dadosObra?.trim() || '',
+      orc: data.orc?.trim() || '',
+      tipoObra: data.tipoObra || '',
       createdBy: caller.id,
       createdAt: t,
       updatedAt: t
@@ -548,21 +621,15 @@ const mockApi = {
   async updateClient(id, data) {
     const caller = getCallerUser()
     if (!caller) return err('Nao autenticado.')
-    if (
-      caller.role !== 'admin' &&
-      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
-    ) {
-      return err('Sem permissao para gerenciar clientes.')
-    }
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar clientes.')
     const idx = store.clients.findIndex((c) => c.id === id)
     if (idx === -1) return err('Cliente nao encontrado.')
     const client = store.clients[idx]
     const safe = {}
     if (data.nome !== undefined) safe.nome = data.nome.trim()
-    if (data.cidade !== undefined) safe.cidade = data.cidade.trim()
-    if (data.empresa !== undefined) safe.empresa = data.empresa.trim()
-    if (data.telefone !== undefined) safe.telefone = data.telefone.trim()
-    if (data.endereco !== undefined) safe.endereco = data.endereco.trim()
+    if (data.dadosObra !== undefined) safe.dadosObra = data.dadosObra.trim()
+    if (data.orc !== undefined) safe.orc = data.orc.trim()
+    if (data.tipoObra !== undefined) safe.tipoObra = data.tipoObra
     const updated = { ...client, ...safe, updatedAt: now() }
     store.clients[idx] = updated
     return ok(updated)
@@ -571,17 +638,125 @@ const mockApi = {
   async deleteClient(id) {
     const caller = getCallerUser()
     if (!caller) return err('Nao autenticado.')
-    if (
-      caller.role !== 'admin' &&
-      !caller.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
-    ) {
-      return err('Sem permissao para gerenciar clientes.')
-    }
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar clientes.')
     const idx = store.clients.findIndex((c) => c.id === id)
     if (idx === -1) return err('Cliente nao encontrado.')
+    const client = store.clients[idx]
+    const relatedServices = store.services.filter((s) => s.clientId === id)
+    const relatedTasks = store.tasks.filter((t) => t.clientId === id)
+    store.trash.push({
+      type: 'client',
+      item: { ...client },
+      relatedServices: relatedServices.map((s) => ({ ...s })),
+      relatedTasks: relatedTasks.map((t) => ({ ...t })),
+      deletedAt: now(),
+      deletedBy: caller.id
+    })
     store.clients.splice(idx, 1)
-    store.tasks = store.tasks.map((t) => (t.clientId === id ? { ...t, clientId: null } : t))
+    store.services = store.services.filter((s) => s.clientId !== id)
+    store.tasks = store.tasks.filter((t) => t.clientId !== id)
     return ok({ id })
+  },
+
+  // ─── Services ─────────────────────────────────────────────────────
+  async listServices(clientId) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    let services = [...store.services]
+    if (clientId) services = services.filter((s) => s.clientId === clientId)
+    return ok(services.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)))
+  },
+
+  async createService(data) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar servicos.')
+    if (!data.clientId) return err('clientId e obrigatorio.')
+    if (!data.nome || !data.nome.trim()) return err('Nome do servico e obrigatorio.')
+    const client = store.clients.find((c) => c.id === data.clientId)
+    if (!client) return err('Cliente nao encontrado.')
+    const t = now()
+    const service = {
+      id: randomId(),
+      clientId: data.clientId,
+      nome: data.nome.trim(),
+      status: 'ativo',
+      createdAt: t,
+      updatedAt: t,
+      completedAt: null
+    }
+    store.services.push(service)
+    return ok(service)
+  },
+
+  async updateService(id, data) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar servicos.')
+    const idx = store.services.findIndex((s) => s.id === id)
+    if (idx === -1) return err('Servico nao encontrado.')
+    const service = store.services[idx]
+    const safe = {}
+    if (data.nome !== undefined) safe.nome = data.nome.trim()
+    if (data.status !== undefined) {
+      safe.status = data.status
+      if (data.status === 'concluido' && service.status !== 'concluido') {
+        safe.completedAt = now()
+      } else if (data.status !== 'concluido') {
+        safe.completedAt = null
+      }
+    }
+    const updated = { ...service, ...safe, updatedAt: now() }
+    store.services[idx] = updated
+    return ok(updated)
+  },
+
+  async deleteService(id) {
+    const caller = getCallerUser()
+    if (!caller) return err('Nao autenticado.')
+    if (!canManageClientsCheck(caller)) return err('Sem permissao para gerenciar servicos.')
+    const idx = store.services.findIndex((s) => s.id === id)
+    if (idx === -1) return err('Servico nao encontrado.')
+    const service = store.services[idx]
+    const relatedTasks = store.tasks.filter((t) => t.serviceId === id)
+    store.trash.push({
+      type: 'service',
+      item: { ...service },
+      relatedTasks: relatedTasks.map((t) => ({ ...t })),
+      deletedAt: now(),
+      deletedBy: caller.id
+    })
+    store.services.splice(idx, 1)
+    store.tasks = store.tasks.filter((t) => t.serviceId !== id)
+    return ok({ id })
+  },
+
+  // ─── Trash ────────────────────────────────────────────────────────
+  async listTrash() {
+    const caller = getCallerUser()
+    if (!caller || caller.role !== 'admin') return err('Acesso negado.')
+    purgeExpiredTrash()
+    return ok([...store.trash])
+  },
+
+  async restoreTrash(index) {
+    const caller = getCallerUser()
+    if (!caller || caller.role !== 'admin') return err('Acesso negado.')
+    purgeExpiredTrash()
+    if (index < 0 || index >= store.trash.length) return err('Item nao encontrado na lixeira.')
+    const entry = store.trash[index]
+    if (entry.type === 'client') {
+      store.clients.push(entry.item)
+      if (entry.relatedServices) entry.relatedServices.forEach((s) => store.services.push(s))
+      if (entry.relatedTasks) entry.relatedTasks.forEach((t) => store.tasks.push(t))
+    } else if (entry.type === 'service') {
+      store.services.push(entry.item)
+      if (entry.relatedTasks) entry.relatedTasks.forEach((t) => store.tasks.push(t))
+    } else if (entry.type === 'task') {
+      store.tasks.push(entry.item)
+    }
+    store.trash.splice(index, 1)
+    return ok({ restored: true })
   },
 
   async updateProfile(data) {
@@ -622,6 +797,12 @@ export async function setupMockApi() {
     createClient: (data) => mockApi.createClient(data),
     updateClient: (id, data) => mockApi.updateClient(id, data),
     deleteClient: (id) => mockApi.deleteClient(id),
+    listServices: (clientId) => mockApi.listServices(clientId),
+    createService: (data) => mockApi.createService(data),
+    updateService: (id, data) => mockApi.updateService(id, data),
+    deleteService: (id) => mockApi.deleteService(id),
+    listTrash: () => mockApi.listTrash(),
+    restoreTrash: (index) => mockApi.restoreTrash(index),
     updateProfile: (data) => mockApi.updateProfile(data)
   }
 }

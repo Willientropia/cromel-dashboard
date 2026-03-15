@@ -20,7 +20,13 @@ import {
   getClientById,
   createClient,
   updateClient,
-  deleteClient
+  deleteClient,
+  listServices,
+  createService,
+  updateService,
+  deleteService,
+  listTrash,
+  restoreTrash
 } from './db.js'
 
 function wrap(fn) {
@@ -192,6 +198,56 @@ export function registerIpcHandlers() {
     wrap(async (_e, { id }) => {
       const user = requireAuth()
       return deleteClient(user, id)
+    })
+  )
+
+  // ─── SERVICES ──────────────────────────────────────────────────────
+  ipcMain.handle(
+    'db:services:list',
+    wrap(async (_e, { clientId }) => {
+      const user = requireAuth()
+      return listServices(user, clientId)
+    })
+  )
+
+  ipcMain.handle(
+    'db:services:create',
+    wrap(async (_e, data) => {
+      const user = requireAuth()
+      return createService(user, data)
+    })
+  )
+
+  ipcMain.handle(
+    'db:services:update',
+    wrap(async (_e, { id, ...data }) => {
+      const user = requireAuth()
+      return updateService(user, id, data)
+    })
+  )
+
+  ipcMain.handle(
+    'db:services:delete',
+    wrap(async (_e, { id }) => {
+      const user = requireAuth()
+      return deleteService(user, id)
+    })
+  )
+
+  // ─── TRASH ────────────────────────────────────────────────────────
+  ipcMain.handle(
+    'db:trash:list',
+    wrap(async () => {
+      const user = requireAdmin()
+      return listTrash(user)
+    })
+  )
+
+  ipcMain.handle(
+    'db:trash:restore',
+    wrap(async (_e, { index }) => {
+      const user = requireAdmin()
+      return restoreTrash(user, index)
     })
   )
 
