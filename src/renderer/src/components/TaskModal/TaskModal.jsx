@@ -9,11 +9,11 @@ export default function TaskModal({
   task,
   defaultDept,
   defaultClientId,
+  defaultServiceId,
   users = [],
   onClose,
   onSaved,
-  onDeleted,
-  onRequestFollowUp
+  onDeleted
 }) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
@@ -31,19 +31,32 @@ export default function TaskModal({
       DEPARTMENTS[0],
     assignedTo: task?.assignedTo || '',
     dueDate: task?.dueDate || '',
-    clientId: task?.clientId || defaultClientId || ''
+    clientId: task?.clientId || defaultClientId || '',
+    serviceId: task?.serviceId || defaultServiceId || ''
   })
   const [comments, setComments] = useState(task?.comments || [])
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [clients, setClients] = useState([])
+  const [services, setServices] = useState([])
 
   useEffect(() => {
     window.api.listClients().then((res) => {
       if (res.success) setClients(res.data)
     })
   }, [])
+
+  useEffect(() => {
+    if (form.clientId) {
+      window.api.listServices(form.clientId).then((res) => {
+        if (res.success) setServices(res.data)
+      })
+    } else {
+      setServices([])
+      setForm((f) => ({ ...f, serviceId: '' }))
+    }
+  }, [form.clientId])
 
   const deptUsers = users.filter(
     (u) => u.departments?.includes(form.department) && u.role !== 'admin'
@@ -69,7 +82,8 @@ export default function TaskModal({
         ...form,
         assignedTo: form.assignedTo || null,
         dueDate: form.dueDate || null,
-        clientId: form.clientId || null
+        clientId: form.clientId || null,
+        serviceId: form.serviceId || null
       }
       let res
       if (isEdit) {
@@ -81,26 +95,6 @@ export default function TaskModal({
         setError(res.error)
       } else {
         onSaved && onSaved(res.data)
-
-        // Follow-up flow: when task is completed
-        if (
-          isEdit &&
-          task.status !== 'concluido' &&
-          form.status === 'concluido' &&
-          form.clientId &&
-          onRequestFollowUp
-        ) {
-          const wantsFollowUp = window.confirm(
-            'Tarefa concluida! Deseja criar uma tarefa de acompanhamento para outro departamento?'
-          )
-          if (wantsFollowUp) {
-            onRequestFollowUp({
-              clientId: form.clientId,
-              originalTitle: form.title
-            })
-          }
-        }
-
         onClose()
       }
     } catch (err) {
@@ -111,7 +105,6 @@ export default function TaskModal({
   }
 
   async function handleDelete() {
-    if (!window.confirm('Tem certeza que deseja excluir esta tarefa?')) return
     setDeleting(true)
     try {
       const res = await window.api.deleteTask(task.id)
@@ -166,11 +159,27 @@ export default function TaskModal({
                 <option value="">-- Selecionar cliente --</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.nome} {c.cidade ? `(${c.cidade})` : ''}
+                    {c.nome} {c.dadosObra ? `(${c.dadosObra})` : ''}
                   </option>
                 ))}
               </select>
             </div>
+
+            {form.clientId && services.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">Servico</label>
+                <select
+                  className="form-select"
+                  value={form.serviceId}
+                  onChange={(e) => set('serviceId', e.target.value)}
+                >
+                  <option value="">-- Sem servico --</option>
+                  {services.filter((s) => s.status === 'ativo').map((s) => (
+                    <option key={s.id} value={s.id}>{s.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Titulo *</label>

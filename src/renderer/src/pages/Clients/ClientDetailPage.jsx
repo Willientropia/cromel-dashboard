@@ -3,12 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import ClientModal from '../../components/ClientModal/ClientModal'
-import { IconChevronLeft, IconPlus, IconRefresh, IconEdit } from '../../components/Icons/Icons'
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal/ConfirmDeleteModal'
+import FollowUpModal from '../../components/FollowUpModal/FollowUpModal'
+import { IconChevronLeft, IconPlus, IconRefresh, IconEdit, IconTrash, IconCheck, IconClock } from '../../components/Icons/Icons'
 import { DEPT_COLORS } from '../../lib/constants'
 import { canManageClients } from '../../lib/permissions'
 import PriorityBadge from '../../components/PriorityBadge/PriorityBadge'
 
 const STATUS_LABELS = { pendente: 'Pendente', 'em-andamento': 'Em Andamento', concluido: 'Concluido' }
+
+function formatDuration(createdAt, completedAt) {
+  if (!createdAt || !completedAt) return null
+  const ms = new Date(completedAt) - new Date(createdAt)
+  const hours = Math.floor(ms / 3600000)
+  const days = Math.floor(hours / 24)
+  if (days > 0) return `${days} dia${days !== 1 ? 's' : ''}`
+  if (hours > 0) return `${hours} hora${hours !== 1 ? 's' : ''}`
+  return 'menos de 1 hora'
+}
 
 export default function ClientDetailPage() {
   const { clientId } = useParams()
@@ -16,13 +28,22 @@ export default function ClientDetailPage() {
   const navigate = useNavigate()
   const [client, setClient] = useState(null)
   const [tasks, setTasks] = useState([])
+  const [services, setServices] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showEditClient, setShowEditClient] = useState(false)
   const [showNewTask, setShowNewTask] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
-  const [followUpDefaults, setFollowUpDefaults] = useState(null)
+  const [activeServiceTab, setActiveServiceTab] = useState(null)
   const [toast, setToast] = useState(null)
+  const [newServiceName, setNewServiceName] = useState('')
+  const [creatingService, setCreatingService] = useState(false)
+  const [showAddService, setShowAddService] = useState(false)
+  const [editingService, setEditingService] = useState(null)
+  const [editServiceName, setEditServiceName] = useState('')
+  const [confirmDeleteService, setConfirmDeleteService] = useState(null)
+  const [pendingFollowUp, setPendingFollowUp] = useState(null)
+  const [followUpDefaults, setFollowUpDefaults] = useState(null)
 
   const canManage = canManageClients(user)
 
@@ -34,14 +55,16 @@ export default function ClientDetailPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [clientRes, tasksRes, usersRes] = await Promise.all([
+      const [clientRes, tasksRes, usersRes, servicesRes] = await Promise.all([
         window.api.getClient(clientId),
         window.api.listTasks({}),
-        window.api.listUsersBasic()
+        window.api.listUsersBasic(),
+        window.api.listServices(clientId)
       ])
       if (clientRes.success) setClient(clientRes.data)
       if (tasksRes.success) setTasks(tasksRes.data.filter((t) => t.clientId === clientId))
       if (usersRes.success) setUsers(usersRes.data)
+      if (servicesRes.success) setServices(servicesRes.data)
     } finally {
       setLoading(false)
     }
@@ -65,6 +88,10 @@ export default function ClientDetailPage() {
       return [saved, ...prev]
     })
     showToast('Tarefa salva!')
+
+    if (saved.status === 'concluido' && saved.clientId) {
+      setPendingFollowUp({ clientId: saved.clientId, originalTitle: saved.title })
+    }
   }
 
   function handleTaskDeleted(id) {
@@ -79,6 +106,63 @@ export default function ClientDetailPage() {
 
   function handleClientDeleted() {
     navigate('/clients')
+  }
+
+  async function handleCreateService() {
+    if (!newServiceName.trim()) return
+    setCreatingService(true)
+    try {
+      const res = await window.api.createService({ clientId, nome: newServiceName.trim() })
+      if (res.success) {
+        setServices((prev) => [res.data, ...prev])
+        setNewServiceName('')
+        setShowAddService(false)
+        setActiveServiceTab(res.data.id)
+        showToast('Servico criado!')
+      } else {
+        showToast(res.error, 'error')
+      }
+    } finally {
+      setCreatingService(false)
+    }
+  }
+
+  async function handleCompleteService(svc) {
+    const newStatus = svc.status === 'concluido' ? 'ativo' : 'concluido'
+    const res = await window.api.updateService(svc.id, { status: newStatus })
+    if (res.success) {
+      setServices((prev) => prev.map((s) => (s.id === svc.id ? res.data : s)))
+      showToast(newStatus === 'concluido' ? 'Servico concluido!' : 'Servico reaberto!')
+    } else {
+      showToast(res.error, 'error')
+    }
+  }
+
+  async function handleRenameService() {
+    if (!editServiceName.trim() || !editingService) return
+    const res = await window.api.updateService(editingService, { nome: editServiceName.trim() })
+    if (res.success) {
+      setServices((prev) => prev.map((s) => (s.id === editingService ? res.data : s)))
+      setEditingService(null)
+      showToast('Servico renomeado!')
+    } else {
+      showToast(res.error, 'error')
+    }
+  }
+
+  async function handleDeleteService() {
+    if (!confirmDeleteService) return
+    const res = await window.api.deleteService(confirmDeleteService)
+    if (res.success) {
+      setServices((prev) => prev.filter((s) => s.id !== confirmDeleteService))
+      setTasks((prev) => prev.filter((t) => t.serviceId !== confirmDeleteService))
+      if (activeServiceTab === confirmDeleteService) setActiveServiceTab(null)
+      setConfirmDeleteService(null)
+      showToast('Servico excluido.')
+    } else {
+      showToast(res.error, 'error')
+      setConfirmDeleteService(null)
+    }
   }
 
   if (loading) {
@@ -102,8 +186,23 @@ export default function ClientDetailPage() {
     )
   }
 
-  const activeTasks = tasks.filter((t) => t.status !== 'concluido')
-  const doneTasks = tasks.filter((t) => t.status === 'concluido')
+  // Determine which tasks to show based on active tab
+  const activeServices = services.filter((s) => s.status === 'ativo')
+  const doneServices = services.filter((s) => s.status === 'concluido')
+
+  let currentTasks
+  let currentService = null
+  if (activeServiceTab === '__none__') {
+    currentTasks = tasks.filter((t) => !t.serviceId)
+  } else if (activeServiceTab) {
+    currentService = services.find((s) => s.id === activeServiceTab)
+    currentTasks = tasks.filter((t) => t.serviceId === activeServiceTab)
+  } else {
+    currentTasks = tasks
+  }
+
+  const activeTasks = currentTasks.filter((t) => t.status !== 'concluido')
+  const doneTasks = currentTasks.filter((t) => t.status === 'concluido')
 
   return (
     <>
@@ -135,44 +234,154 @@ export default function ClientDetailPage() {
             )}
           </div>
           <div className="client-detail-info">
-            {client.cidade && (
+            {client.dadosObra && (
               <div className="client-detail-info-item">
-                <span className="client-detail-info-label">Cidade: </span>
-                <span className="client-detail-info-value">{client.cidade}</span>
+                <span className="client-detail-info-label">Dados da Obra: </span>
+                <span className="client-detail-info-value">{client.dadosObra}</span>
               </div>
             )}
-            {client.empresa && (
+            {client.orc && (
               <div className="client-detail-info-item">
-                <span className="client-detail-info-label">Empresa: </span>
-                <span className="client-detail-info-value">{client.empresa}</span>
+                <span className="client-detail-info-label">ORC/OV/OSS: </span>
+                <span className="client-detail-info-value">{client.orc}</span>
               </div>
             )}
-            {client.telefone && (
+            {client.tipoObra && (
               <div className="client-detail-info-item">
-                <span className="client-detail-info-label">Telefone: </span>
-                <span className="client-detail-info-value">{client.telefone}</span>
-              </div>
-            )}
-            {client.endereco && (
-              <div className="client-detail-info-item">
-                <span className="client-detail-info-label">Endereco: </span>
-                <span className="client-detail-info-value">{client.endereco}</span>
+                <span className="client-detail-info-label">Tipo de Obra: </span>
+                <span className="client-detail-info-value">{client.tipoObra}</span>
               </div>
             )}
           </div>
         </div>
 
+        {/* Service tabs */}
+        <div className="service-tabs">
+          <button
+            className={`service-tab${activeServiceTab === null ? ' active' : ''}`}
+            onClick={() => setActiveServiceTab(null)}
+          >
+            Todas ({tasks.length})
+          </button>
+          {activeServices.map((svc) => (
+            <button
+              key={svc.id}
+              className={`service-tab${activeServiceTab === svc.id ? ' active' : ''}`}
+              onClick={() => setActiveServiceTab(svc.id)}
+            >
+              {svc.nome}
+            </button>
+          ))}
+          {doneServices.map((svc) => (
+            <button
+              key={svc.id}
+              className={`service-tab done${activeServiceTab === svc.id ? ' active' : ''}`}
+              onClick={() => setActiveServiceTab(svc.id)}
+              title="Servico concluido"
+            >
+              <IconCheck size={12} /> {svc.nome}
+            </button>
+          ))}
+          <button
+            className={`service-tab${activeServiceTab === '__none__' ? ' active' : ''}`}
+            onClick={() => setActiveServiceTab('__none__')}
+          >
+            Sem Servico
+          </button>
+          {canManage && (
+            <button
+              className="service-tab add"
+              onClick={() => setShowAddService(true)}
+              title="Novo servico"
+            >
+              <IconPlus size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Add service inline */}
+        {showAddService && (
+          <div className="service-add-bar">
+            <input
+              className="form-input"
+              placeholder="Nome do servico..."
+              value={newServiceName}
+              onChange={(e) => setNewServiceName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateService()}
+              autoFocus
+              style={{ flex: 1 }}
+            />
+            <button className="btn btn-primary btn-sm" onClick={handleCreateService} disabled={creatingService}>
+              {creatingService ? 'Criando...' : 'Criar'}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setShowAddService(false); setNewServiceName('') }}>
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {/* Service header when a specific service is selected */}
+        {currentService && (
+          <div className="service-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {editingService === currentService.id ? (
+                <>
+                  <input
+                    className="form-input"
+                    value={editServiceName}
+                    onChange={(e) => setEditServiceName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameService(); if (e.key === 'Escape') setEditingService(null) }}
+                    onBlur={handleRenameService}
+                    autoFocus
+                    style={{ width: 200 }}
+                  />
+                </>
+              ) : (
+                <>
+                  <h3 style={{ margin: 0 }}>{currentService.nome}</h3>
+                  <span className={`service-status-badge ${currentService.status}`}>
+                    {currentService.status === 'concluido' ? 'Concluido' : 'Ativo'}
+                  </span>
+                </>
+              )}
+            </div>
+            {canManage && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleCompleteService(currentService)}
+                >
+                  {currentService.status === 'concluido' ? 'Reabrir' : 'Concluir'}
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { setEditingService(currentService.id); setEditServiceName(currentService.nome) }}
+                >
+                  <IconEdit size={13} />
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setConfirmDeleteService(currentService.id)}
+                  style={{ color: 'var(--danger)' }}
+                >
+                  <IconTrash size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tasks */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>Tarefas ({tasks.length})</h3>
+          <h3 style={{ margin: 0 }}>Tarefas ({currentTasks.length})</h3>
           <button className="btn btn-primary btn-sm" onClick={() => setShowNewTask(true)}>
             <IconPlus size={14} /> Nova Tarefa
           </button>
         </div>
 
-        {tasks.length === 0 ? (
+        {currentTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
-            Nenhuma tarefa vinculada a este cliente.
+            Nenhuma tarefa nesta secao.
           </div>
         ) : (
           <div className="client-task-list">
@@ -192,7 +401,7 @@ export default function ClientDetailPage() {
                   Concluidas ({doneTasks.length})
                 </div>
                 {doneTasks.map((t) => (
-                  <TaskRow key={t.id} task={t} users={users} onClick={() => setSelectedTask(t)} />
+                  <TaskRow key={t.id} task={t} users={users} onClick={() => setSelectedTask(t)} showTiming />
                 ))}
               </>
             )}
@@ -207,16 +416,13 @@ export default function ClientDetailPage() {
           onClose={() => setSelectedTask(null)}
           onSaved={(s) => { handleTaskSaved(s); setSelectedTask(null) }}
           onDeleted={(id) => { handleTaskDeleted(id); setSelectedTask(null) }}
-          onRequestFollowUp={(defaults) => {
-            setSelectedTask(null)
-            setFollowUpDefaults(defaults)
-          }}
         />
       )}
 
       {showNewTask && (
         <TaskModal
           defaultClientId={clientId}
+          defaultServiceId={activeServiceTab && activeServiceTab !== '__none__' ? activeServiceTab : undefined}
           users={users}
           onClose={() => setShowNewTask(false)}
           onSaved={(s) => { handleTaskSaved(s); setShowNewTask(false) }}
@@ -232,12 +438,31 @@ export default function ClientDetailPage() {
         />
       )}
 
+      {pendingFollowUp && (
+        <FollowUpModal
+          onArchive={() => setPendingFollowUp(null)}
+          onFollowUp={() => {
+            setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
+            setPendingFollowUp(null)
+          }}
+          onClose={() => setPendingFollowUp(null)}
+        />
+      )}
+
       {showEditClient && (
         <ClientModal
           client={client}
           onClose={() => setShowEditClient(false)}
           onSaved={(s) => { handleClientSaved(s); setShowEditClient(false) }}
           onDeleted={() => handleClientDeleted()}
+        />
+      )}
+
+      {confirmDeleteService && (
+        <ConfirmDeleteModal
+          itemName={services.find((s) => s.id === confirmDeleteService)?.nome || 'servico'}
+          onClose={() => setConfirmDeleteService(null)}
+          onConfirm={handleDeleteService}
         />
       )}
 
@@ -251,13 +476,14 @@ export default function ClientDetailPage() {
   )
 }
 
-function TaskRow({ task, users, onClick }) {
+function TaskRow({ task, users, onClick, showTiming = false }) {
   const assignee = users.find((u) => u.id === task.assignedTo)
+  const duration = showTiming ? formatDuration(task.createdAt, task.completedAt) : null
   return (
     <div className="client-task-row" onClick={onClick}>
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, fontSize: 13 }}>{task.title}</div>
-        <div className="text-sm text-muted" style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div className="text-sm text-muted" style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           <span
             className="dept-badge"
             style={{
@@ -270,6 +496,16 @@ function TaskRow({ task, users, onClick }) {
           </span>
           <span>{STATUS_LABELS[task.status] || task.status}</span>
           {assignee && <span>@ {assignee.username}</span>}
+          {duration && (
+            <span className="task-timing">
+              <IconClock size={11} /> Aberta por {duration}
+            </span>
+          )}
+          {showTiming && task.completedAt && (
+            <span className="task-timing">
+              Concluida em {new Date(task.completedAt).toLocaleDateString('pt-BR')}
+            </span>
+          )}
         </div>
       </div>
       <PriorityBadge priority={task.priority} />

@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import KanbanCard from './KanbanCard'
-import { IconClipboard, IconClock, IconCheck } from '../Icons/Icons'
+import { IconClipboard, IconClock } from '../Icons/Icons'
 
 const DEFAULT_LABELS = {
   pendente: 'Pendente',
-  'em-andamento': 'Em Andamento',
-  concluido: 'Concluido'
+  'em-andamento': 'Em Andamento'
 }
 
 const COLUMN_META = {
@@ -19,11 +18,6 @@ const COLUMN_META = {
     className: 'progress',
     Icon: IconClock,
     emptyText: 'Nenhuma tarefa em andamento'
-  },
-  concluido: {
-    className: 'done',
-    Icon: IconCheck,
-    emptyText: 'Nenhuma tarefa concluida'
   }
 }
 

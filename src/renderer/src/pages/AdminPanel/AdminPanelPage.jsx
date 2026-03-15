@@ -4,6 +4,7 @@ import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import UserModal from '../../components/UserModal/UserModal'
 import ClientModal from '../../components/ClientModal/ClientModal'
+import FollowUpModal from '../../components/FollowUpModal/FollowUpModal'
 import {
   IconBolt,
   IconRefresh,
@@ -12,6 +13,7 @@ import {
   IconEdit,
   IconEye,
   IconEyeOff,
+  IconTrash,
   DeptIcon
 } from '../../components/Icons/Icons'
 import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
@@ -32,6 +34,7 @@ export default function AdminPanelPage() {
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
   const [clients, setClients] = useState([])
+  const [trash, setTrash] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
   const [showNewTask, setShowNewTask] = useState(false)
@@ -44,6 +47,7 @@ export default function AdminPanelPage() {
   const [toast, setToast] = useState(null)
   const [visiblePasswords, setVisiblePasswords] = useState({})
   const [followUpDefaults, setFollowUpDefaults] = useState(null)
+  const [pendingFollowUp, setPendingFollowUp] = useState(null)
 
   function togglePasswordVisibility(userId) {
     setVisiblePasswords((prev) => ({ ...prev, [userId]: !prev[userId] }))
@@ -57,14 +61,16 @@ export default function AdminPanelPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [tasksRes, usersRes, clientsRes] = await Promise.all([
+      const [tasksRes, usersRes, clientsRes, trashRes] = await Promise.all([
         window.api.listTasks({}),
         window.api.listUsers(),
-        window.api.listClients()
+        window.api.listClients(),
+        window.api.listTrash()
       ])
       if (tasksRes.success) setTasks(tasksRes.data)
       if (usersRes.success) setUsers(usersRes.data)
       if (clientsRes.success) setClients(clientsRes.data)
+      if (trashRes.success) setTrash(trashRes.data)
     } finally {
       setLoading(false)
     }
@@ -77,11 +83,11 @@ export default function AdminPanelPage() {
   useEffect(() => {
     if (urlTab === 'users') setActiveTab('users')
     else if (urlTab === 'clients') setActiveTab('clients')
+    else if (urlTab === 'trash') setActiveTab('trash')
     else if (urlDept && DEPARTMENTS.includes(urlDept)) setActiveTab(urlDept)
   }, [urlDept, urlTab])
 
   async function handleTaskMove(taskId, newStatus) {
-    const task = tasks.find((t) => t.id === taskId)
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
@@ -91,17 +97,6 @@ export default function AdminPanelPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
-    } else if (
-      newStatus === 'concluido' &&
-      task?.status !== 'concluido' &&
-      task?.clientId
-    ) {
-      const wantsFollowUp = window.confirm(
-        'Tarefa concluida! Deseja criar uma tarefa de acompanhamento para outro departamento?'
-      )
-      if (wantsFollowUp) {
-        setFollowUpDefaults({ clientId: task.clientId, originalTitle: task.title })
-      }
     }
   }
 
@@ -116,6 +111,10 @@ export default function AdminPanelPage() {
       return [saved, ...prev]
     })
     showToast('Tarefa salva!')
+
+    if (saved.status === 'concluido' && saved.clientId) {
+      setPendingFollowUp({ clientId: saved.clientId, originalTitle: saved.title })
+    }
   }
 
   function handleTaskDeleted(id) {
@@ -157,13 +156,25 @@ export default function AdminPanelPage() {
   function handleClientDeleted(id) {
     setClients((prev) => prev.filter((c) => c.id !== id))
     showToast('Cliente excluido.')
+    loadData()
+  }
+
+  async function handleRestoreTrash(index) {
+    const res = await window.api.restoreTrash(index)
+    if (res.success) {
+      showToast('Item restaurado!')
+      loadData()
+    } else {
+      showToast(res.error || 'Erro ao restaurar.', 'error')
+    }
   }
 
   const isDeptTab = DEPARTMENTS.includes(activeTab)
+  // Filter out completed tasks from department kanban view
   const deptTasks = isDeptTab
     ? (filterPriority
-        ? tasks.filter((t) => t.department === activeTab && t.priority === filterPriority)
-        : tasks.filter((t) => t.department === activeTab))
+        ? tasks.filter((t) => t.department === activeTab && t.priority === filterPriority && t.status !== 'concluido')
+        : tasks.filter((t) => t.department === activeTab && t.status !== 'concluido'))
     : []
 
   const nonAdminUsers = users.filter((u) => u.role !== 'admin')
@@ -173,8 +184,9 @@ export default function AdminPanelPage() {
         const q = clientSearch.toLowerCase()
         return (
           c.nome.toLowerCase().includes(q) ||
-          c.cidade?.toLowerCase().includes(q) ||
-          c.empresa?.toLowerCase().includes(q)
+          c.dadosObra?.toLowerCase().includes(q) ||
+          c.orc?.toLowerCase().includes(q) ||
+          c.tipoObra?.toLowerCase().includes(q)
         )
       })
     : clients
@@ -215,6 +227,12 @@ export default function AdminPanelPage() {
           onClick={() => setActiveTab('users')}
         >
           <IconUsers size={15} /> Usuarios
+        </button>
+        <button
+          className={`admin-tab${activeTab === 'trash' ? ' active' : ''}`}
+          onClick={() => setActiveTab('trash')}
+        >
+          <IconTrash size={15} /> Lixeira
         </button>
       </div>
 
@@ -297,9 +315,9 @@ export default function AdminPanelPage() {
                   <thead>
                     <tr>
                       <th>Nome</th>
-                      <th>Cidade</th>
-                      <th>Empresa</th>
-                      <th>Telefone</th>
+                      <th>Dados da Obra</th>
+                      <th>ORC/OV/OSS</th>
+                      <th>Tipo de Obra</th>
                       <th>Tarefas</th>
                       <th>Acoes</th>
                     </tr>
@@ -310,9 +328,9 @@ export default function AdminPanelPage() {
                       return (
                         <tr key={c.id}>
                           <td><span className="font-bold">{c.nome}</span></td>
-                          <td className="text-sm">{c.cidade || '\u2014'}</td>
-                          <td className="text-sm">{c.empresa || '\u2014'}</td>
-                          <td className="text-sm">{c.telefone || '\u2014'}</td>
+                          <td className="text-sm">{c.dadosObra || '\u2014'}</td>
+                          <td className="text-sm">{c.orc || '\u2014'}</td>
+                          <td className="text-sm">{c.tipoObra || '\u2014'}</td>
                           <td>
                             <span className="text-sm">
                               {clientTasks.length > 0
@@ -505,6 +523,62 @@ export default function AdminPanelPage() {
             </div>
           </div>
         )}
+
+        {/* Trash view */}
+        {activeTab === 'trash' && (
+          <div>
+            <div className="user-table-section">
+              <div className="user-table-header">
+                <h3>Lixeira</h3>
+                <span className="text-sm text-muted">Itens sao removidos automaticamente apos 3 dias</span>
+              </div>
+
+              {loading ? (
+                <div className="loading-state">
+                  <div className="spinner" /> Carregando lixeira...
+                </div>
+              ) : trash.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-500)' }}>
+                  Lixeira vazia.
+                </div>
+              ) : (
+                <table className="user-table">
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Nome</th>
+                      <th>Excluido em</th>
+                      <th>Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trash.map((entry, idx) => {
+                      const typeLabels = { client: 'Cliente', service: 'Servico', task: 'Tarefa' }
+                      const name = entry.item?.nome || entry.item?.title || '—'
+                      return (
+                        <tr key={idx}>
+                          <td><span className="text-sm">{typeLabels[entry.type] || entry.type}</span></td>
+                          <td><span className="font-bold">{name}</span></td>
+                          <td className="text-sm text-muted">
+                            {new Date(entry.deletedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleRestoreTrash(idx)}
+                            >
+                              Restaurar
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedTask && (
@@ -514,10 +588,6 @@ export default function AdminPanelPage() {
           onClose={() => setSelectedTask(null)}
           onSaved={(s) => { handleTaskSaved(s); setSelectedTask(null) }}
           onDeleted={(id) => { handleTaskDeleted(id); setSelectedTask(null) }}
-          onRequestFollowUp={(defaults) => {
-            setSelectedTask(null)
-            setFollowUpDefaults(defaults)
-          }}
         />
       )}
 
@@ -536,6 +606,17 @@ export default function AdminPanelPage() {
           users={users}
           onClose={() => setFollowUpDefaults(null)}
           onSaved={(s) => { handleTaskSaved(s); setFollowUpDefaults(null) }}
+        />
+      )}
+
+      {pendingFollowUp && (
+        <FollowUpModal
+          onArchive={() => setPendingFollowUp(null)}
+          onFollowUp={() => {
+            setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
+            setPendingFollowUp(null)
+          }}
+          onClose={() => setPendingFollowUp(null)}
         />
       )}
 

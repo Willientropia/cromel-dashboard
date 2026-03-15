@@ -45,8 +45,9 @@ export default function ClientsPage() {
         const q = search.toLowerCase()
         return (
           c.nome.toLowerCase().includes(q) ||
-          c.cidade?.toLowerCase().includes(q) ||
-          c.empresa?.toLowerCase().includes(q)
+          c.dadosObra?.toLowerCase().includes(q) ||
+          c.orc?.toLowerCase().includes(q) ||
+          c.tipoObra?.toLowerCase().includes(q)
         )
       })
     : clients
@@ -85,7 +86,7 @@ export default function ClientsPage() {
           )}
           <input
             className="form-input"
-            placeholder="Buscar por nome, cidade ou empresa..."
+            placeholder="Buscar por nome, obra, ORC ou tipo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: 'auto', minWidth: 250 }}
@@ -116,8 +117,13 @@ export default function ClientsPage() {
                 >
                   <div className="client-card-name">{c.nome}</div>
                   <div className="client-card-info">
-                    {[c.cidade, c.empresa].filter(Boolean).join(' \u2022 ') || '\u2014'}
+                    {[c.dadosObra, c.tipoObra].filter(Boolean).join(' \u2022 ') || '\u2014'}
                   </div>
+                  {c.orc && (
+                    <div className="client-card-info" style={{ fontSize: 11, opacity: 0.7 }}>
+                      {c.orc}
+                    </div>
+                  )}
                   {clientTasks.length > 0 && (
                     <span className="client-card-tasks">
                       {clientTasks.length} tarefa{clientTasks.length !== 1 ? 's' : ''}
