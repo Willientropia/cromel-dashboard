@@ -10,6 +10,14 @@ import ClientsPage from './pages/Clients/ClientsPage'
 import ClientDetailPage from './pages/Clients/ClientDetailPage'
 import NotFoundPage from './pages/NotFound/NotFoundPage'
 
+function DefaultRedirect() {
+  const { user } = useAuth()
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />
+  const firstDept = user?.departments?.[0]
+  if (firstDept) return <Navigate to={`/dashboard?dept=${firstDept}`} replace />
+  return <Navigate to="/dashboard" replace />
+}
+
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
 
@@ -44,7 +52,7 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        element={user ? <DefaultRedirect /> : <LoginPage />}
       />
 
       <Route
@@ -55,8 +63,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={<DefaultRedirect />} />
+        <Route path="dashboard" element={user?.role === 'admin' ? <Navigate to="/admin" replace /> : <DashboardPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/:clientId" element={<ClientDetailPage />} />

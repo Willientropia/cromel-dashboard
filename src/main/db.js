@@ -242,10 +242,13 @@ export function listTasks(callerUser, filters = {}) {
   const db = readDB()
   let tasks = db.tasks
 
-  if (callerUser.role !== 'admin') {
+  const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
+  const isClientManager = callerUser.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+
+  if (callerUser.role === 'admin') {
+    if (filters.department) tasks = tasks.filter((t) => t.department === filters.department)
+  } else if (!isClientManager) {
     tasks = tasks.filter((t) => callerUser.departments.includes(t.department))
-  } else if (filters.department) {
-    tasks = tasks.filter((t) => t.department === filters.department)
   }
 
   if (filters.status) tasks = tasks.filter((t) => t.status === filters.status)

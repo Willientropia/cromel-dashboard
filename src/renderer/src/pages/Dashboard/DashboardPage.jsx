@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
@@ -8,6 +9,8 @@ import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const location = useLocation()
+  const urlDept = new URLSearchParams(location.search).get('dept') || ''
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
   const [clients, setClients] = useState([])
@@ -15,7 +18,7 @@ export default function DashboardPage() {
   const [selectedTask, setSelectedTask] = useState(null)
   const [showNewTask, setShowNewTask] = useState(false)
   const [filterPriority, setFilterPriority] = useState('')
-  const [filterDept, setFilterDept] = useState('')
+  const [filterDept, setFilterDept] = useState(urlDept)
   const [toast, setToast] = useState(null)
   const [followUpDefaults, setFollowUpDefaults] = useState(null)
   const [pendingFollowUp, setPendingFollowUp] = useState(null)
@@ -49,6 +52,10 @@ export default function DashboardPage() {
     loadData()
   }, [loadData])
 
+  useEffect(() => {
+    setFilterDept(urlDept)
+  }, [urlDept])
+
   async function handleTaskMove(taskId, newStatus) {
     const task = tasks.find((t) => t.id === taskId)
     setTasks((prev) =>
@@ -60,8 +67,8 @@ export default function DashboardPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
-    } else if (newStatus === 'concluido' && task?.clientId) {
-      setPendingFollowUp({ taskId, clientId: task.clientId, originalTitle: task.title })
+    } else if (newStatus === 'concluido') {
+      setPendingFollowUp({ taskId, clientId: task?.clientId || null, originalTitle: task?.title || '' })
     }
   }
 
@@ -78,8 +85,8 @@ export default function DashboardPage() {
     showToast('Tarefa salva com sucesso!')
 
     // Show follow-up modal when task is completed via modal
-    if (saved.status === 'concluido' && saved.clientId) {
-      setPendingFollowUp({ taskId: saved.id, clientId: saved.clientId, originalTitle: saved.title })
+    if (saved.status === 'concluido') {
+      setPendingFollowUp({ taskId: saved.id, clientId: saved.clientId || null, originalTitle: saved.title || '' })
     }
   }
 

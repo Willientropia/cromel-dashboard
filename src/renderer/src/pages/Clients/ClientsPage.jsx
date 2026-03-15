@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import ClientModal from '../../components/ClientModal/ClientModal'
 import ClientDetailModal from '../../components/ClientDetailModal/ClientDetailModal'
-import { IconUsers, IconPlus, IconRefresh } from '../../components/Icons/Icons'
+import { IconUsers, IconPlus, IconRefresh, IconEdit } from '../../components/Icons/Icons'
 import { canManageClients } from '../../lib/permissions'
 
 export default function ClientsPage() {
@@ -13,6 +13,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [showNewClient, setShowNewClient] = useState(false)
   const [selectedClient, setSelectedClient] = useState(null)
+  const [editingClient, setEditingClient] = useState(null)
   const [toast, setToast] = useState(null)
 
   const canManage = canManageClients(user)
@@ -40,7 +41,11 @@ export default function ClientsPage() {
     loadData()
   }, [loadData])
 
-  const filteredClients = search
+  function isClientActive(clientId) {
+    return tasks.some((t) => t.clientId === clientId && !t.archived && t.status !== 'concluido')
+  }
+
+  const filtered = search
     ? clients.filter((c) => {
         const q = search.toLowerCase()
         return (
@@ -51,6 +56,13 @@ export default function ClientsPage() {
         )
       })
     : clients
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aActive = isClientActive(a.id)
+    const bActive = isClientActive(b.id)
+    if (aActive !== bActive) return aActive ? -1 : 1
+    return a.nome.localeCompare(b.nome, 'pt-BR')
+  })
 
   function handleClientSaved(saved) {
     setClients((prev) => {
@@ -92,7 +104,7 @@ export default function ClientsPage() {
             style={{ width: 'auto', minWidth: 250 }}
           />
           <span className="text-sm text-muted">
-            {filteredClients.length} cliente{filteredClients.length !== 1 ? 's' : ''}
+            {sorted.length} cliente{sorted.length !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -101,48 +113,79 @@ export default function ClientsPage() {
             <div className="spinner" />
             Carregando clientes...
           </div>
-        ) : filteredClients.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-500)' }}>
             {search ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}
           </div>
         ) : (
-          <div className="client-grid">
-            {filteredClients.map((c) => {
-              const clientTasks = tasks.filter((t) => t.clientId === c.id)
-              const activeTasks = clientTasks.filter((t) => t.status !== 'concluido')
-              const doneTasks = clientTasks.filter((t) => t.status === 'concluido')
-              return (
-                <div
-                  key={c.id}
-                  className="client-card"
-                  onClick={() => setSelectedClient(c)}
-                >
-                  <div className="client-card-name">{c.nome}</div>
-                  <div className="client-card-info">
-                    {[c.dadosObra, c.tipoObra].filter(Boolean).join(' \u2022 ') || '\u2014'}
-                  </div>
-                  {c.orc && (
-                    <div className="client-card-info" style={{ fontSize: 11, opacity: 0.7 }}>
-                      {c.orc}
-                    </div>
-                  )}
-                  {clientTasks.length > 0 && (
-                    <div className="client-card-tasks-info">
-                      {activeTasks.length > 0 && (
-                        <span className="client-card-tasks active">
-                          {activeTasks.length} ativa{activeTasks.length !== 1 ? 's' : ''}
+          <div className="user-table-section">
+            <table className="user-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Dados da Obra</th>
+                  <th>ORC / OV / OSS</th>
+                  <th>Tipo de Obra</th>
+                  <th>Tarefas Ativas</th>
+                  <th>Status</th>
+                  {canManage && <th>Acoes</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((c) => {
+                  const active = isClientActive(c.id)
+                  const activeTasks = tasks.filter(
+                    (t) => t.clientId === c.id && !t.archived && t.status !== 'concluido'
+                  )
+                  return (
+                    <tr
+                      key={c.id}
+                      style={{ cursor: 'pointer', opacity: active ? 1 : 0.55 }}
+                      onClick={() => setSelectedClient(c)}
+                    >
+                      <td><span className="font-bold">{c.nome}</span></td>
+                      <td className="text-sm">{c.dadosObra || '\u2014'}</td>
+                      <td className="text-sm">{c.orc || '\u2014'}</td>
+                      <td className="text-sm">{c.tipoObra || '\u2014'}</td>
+                      <td>
+                        <span className="text-sm">
+                          {activeTasks.length > 0
+                            ? `${activeTasks.length} tarefa${activeTasks.length !== 1 ? 's' : ''}`
+                            : '\u2014'}
                         </span>
-                      )}
-                      {doneTasks.length > 0 && (
-                        <span className="client-card-tasks done">
-                          {doneTasks.length} concluida{doneTasks.length !== 1 ? 's' : ''}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 10,
+                            background: active ? 'var(--col-progress-header)20' : 'var(--gray-200)',
+                            color: active ? 'var(--col-progress-header)' : 'var(--text-muted)'
+                          }}
+                        >
+                          {active ? 'Ativo' : 'Inativo'}
                         </span>
+                      </td>
+                      {canManage && (
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <div className="table-actions">
+                            <button
+                              className="btn-icon"
+                              onClick={() => setEditingClient(c)}
+                              title="Editar cliente"
+                            >
+                              <IconEdit size={15} />
+                            </button>
+                          </div>
+                        </td>
                       )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -150,10 +193,16 @@ export default function ClientsPage() {
       {showNewClient && (
         <ClientModal
           onClose={() => setShowNewClient(false)}
-          onSaved={(s) => {
-            handleClientSaved(s)
-            setShowNewClient(false)
-          }}
+          onSaved={(s) => { handleClientSaved(s); setShowNewClient(false) }}
+        />
+      )}
+
+      {editingClient && (
+        <ClientModal
+          client={editingClient}
+          onClose={() => setEditingClient(null)}
+          onSaved={(s) => { handleClientSaved(s); setEditingClient(null) }}
+          onDeleted={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setEditingClient(null); showToast('Cliente excluido.') }}
         />
       )}
 

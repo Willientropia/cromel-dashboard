@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import logoUrl from '../../assets/logo.svg'
 import {
-  IconHome,
   IconBolt,
   IconUsers,
   IconUser,
@@ -57,6 +56,10 @@ export default function Sidebar() {
     return isAdminPath && currentDept === d
   }
 
+  function isUserDeptActive(d) {
+    return location.pathname === '/dashboard' && currentDept === d
+  }
+
   function isUsersActive() {
     return isAdminPath && currentTab === 'users'
   }
@@ -99,40 +102,38 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {/* Dashboard section */}
-        <div className="sidebar-section-label">Dashboard</div>
+        {/* Navigation section */}
+        {isAdmin && <div className="sidebar-section-label">Administracao</div>}
+        {!isAdmin && <div className="sidebar-section-label">Departamentos</div>}
 
         {isAdmin ? (
-          <>
-            <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-              <span className="sidebar-link-icon"><IconHome size={18} /></span>
-              <span className="sidebar-link-text">Visao Geral</span>
-            </NavLink>
-
-            <a
-              href="#"
-              className={`sidebar-link${isAdminOverviewActive() ? ' active' : ''}`}
-              onClick={(e) => { e.preventDefault(); navigate('/admin') }}
-            >
-              <span className="sidebar-link-icon"><IconBolt size={18} /></span>
-              <span className="sidebar-link-text">Painel Admin</span>
-            </a>
-          </>
-        ) : (
-          <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
-            <span className="sidebar-link-icon">
-              <DeptIcon department={depts[0]} size={18} />
-            </span>
-            <span className="sidebar-link-text">
-              {depts.length === 1 ? depts[0] : 'Meu Dashboard'}
-            </span>
-            {depts.length === 1 && (
-              <span
-                className="sidebar-dept-dot"
-                style={{ background: DEPT_COLORS[depts[0]] || 'var(--primary)' }}
-              />
-            )}
+          <a
+            href="#"
+            className={`sidebar-link${isAdminOverviewActive() ? ' active' : ''}`}
+            onClick={(e) => { e.preventDefault(); navigate('/admin') }}
+          >
+            <span className="sidebar-link-icon"><IconBolt size={18} /></span>
+            <span className="sidebar-link-text">Painel Admin</span>
+          </a>
+        ) : depts.length === 1 ? (
+          <NavLink to={`/dashboard?dept=${depts[0]}`} className={({ isActive }) => `sidebar-link${isActive && currentDept === depts[0] ? ' active' : ''}`}>
+            <span className="sidebar-link-icon"><DeptIcon department={depts[0]} size={18} /></span>
+            <span className="sidebar-link-text">{depts[0]}</span>
+            <span className="sidebar-dept-dot" style={{ background: DEPT_COLORS[depts[0]] || 'var(--primary)' }} />
           </NavLink>
+        ) : (
+          depts.map((d) => (
+            <a
+              key={d}
+              href="#"
+              className={`sidebar-link${isUserDeptActive(d) ? ' active' : ''}`}
+              onClick={(e) => { e.preventDefault(); navigate(`/dashboard?dept=${d}`); setMobileOpen(false) }}
+            >
+              <span className="sidebar-link-icon"><DeptIcon department={d} size={18} /></span>
+              <span className="sidebar-link-text">{d}</span>
+              <span className="sidebar-dept-dot" style={{ background: DEPT_COLORS[d] || 'var(--primary)' }} />
+            </a>
+          ))
         )}
 
         {/* Admin sections */}

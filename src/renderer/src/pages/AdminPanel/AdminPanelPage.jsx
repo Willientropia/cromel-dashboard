@@ -4,6 +4,7 @@ import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import UserModal from '../../components/UserModal/UserModal'
 import ClientModal from '../../components/ClientModal/ClientModal'
+import ClientDetailModal from '../../components/ClientDetailModal/ClientDetailModal'
 import FollowUpModal from '../../components/FollowUpModal/FollowUpModal'
 import {
   IconBolt,
@@ -17,6 +18,7 @@ import {
   DeptIcon
 } from '../../components/Icons/Icons'
 import { DEPARTMENTS, DEPT_COLORS } from '../../lib/constants'
+import AdminOverview from '../../components/AdminOverview/AdminOverview'
 
 function getInitials(username) {
   if (!username) return '?'
@@ -30,7 +32,7 @@ export default function AdminPanelPage() {
   const urlTab = params.get('tab')
   const urlDept = params.get('dept')
 
-  const [activeTab, setActiveTab] = useState(urlDept || urlTab || DEPARTMENTS[0])
+  const [activeTab, setActiveTab] = useState(urlDept || urlTab || 'overview')
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
   const [clients, setClients] = useState([])
@@ -41,6 +43,7 @@ export default function AdminPanelPage() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [showNewUser, setShowNewUser] = useState(false)
   const [selectedClient, setSelectedClient] = useState(null)
+  const [selectedClientDetail, setSelectedClientDetail] = useState(null)
   const [showNewClient, setShowNewClient] = useState(false)
   const [filterPriority, setFilterPriority] = useState('')
   const [clientSearch, setClientSearch] = useState('')
@@ -85,9 +88,21 @@ export default function AdminPanelPage() {
     else if (urlTab === 'clients') setActiveTab('clients')
     else if (urlTab === 'trash') setActiveTab('trash')
     else if (urlDept && DEPARTMENTS.includes(urlDept)) setActiveTab(urlDept)
+    else if (!urlDept && !urlTab) setActiveTab('overview')
   }, [urlDept, urlTab])
 
+  async function handleArchiveTask(taskId) {
+    const res = await window.api.updateTask(taskId, { archived: true })
+    if (res.success) {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      showToast('Tarefa arquivada.')
+    } else {
+      showToast(res.error || 'Erro ao arquivar.', 'error')
+    }
+  }
+
   async function handleTaskMove(taskId, newStatus) {
+    const task = tasks.find((t) => t.id === taskId)
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
@@ -97,6 +112,8 @@ export default function AdminPanelPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
+    } else if (newStatus === 'concluido') {
+      setPendingFollowUp({ taskId, clientId: task?.clientId || null, originalTitle: task?.title || '' })
     }
   }
 
@@ -112,8 +129,8 @@ export default function AdminPanelPage() {
     })
     showToast('Tarefa salva!')
 
-    if (saved.status === 'concluido' && saved.clientId) {
-      setPendingFollowUp({ clientId: saved.clientId, originalTitle: saved.title })
+    if (saved.status === 'concluido') {
+      setPendingFollowUp({ taskId: saved.id, clientId: saved.clientId || null, originalTitle: saved.title || '' })
     }
   }
 
@@ -173,8 +190,8 @@ export default function AdminPanelPage() {
   // Filter out completed tasks from department kanban view
   const deptTasks = isDeptTab
     ? (filterPriority
-        ? tasks.filter((t) => t.department === activeTab && t.priority === filterPriority && t.status !== 'concluido')
-        : tasks.filter((t) => t.department === activeTab && t.status !== 'concluido'))
+        ? tasks.filter((t) => t.department === activeTab && t.priority === filterPriority && !t.archived)
+        : tasks.filter((t) => t.department === activeTab && !t.archived))
     : []
 
   const nonAdminUsers = users.filter((u) => u.role !== 'admin')
@@ -190,6 +207,13 @@ export default function AdminPanelPage() {
         )
       })
     : clients
+
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    const aActive = tasks.some((t) => t.clientId === a.id && !t.archived && t.status !== 'concluido')
+    const bActive = tasks.some((t) => t.clientId === b.id && !t.archived && t.status !== 'concluido')
+    if (aActive !== bActive) return aActive ? -1 : 1
+    return a.nome.localeCompare(b.nome, 'pt-BR')
+  })
 
   // Build client map for kanban
   const clientMap = {}
@@ -237,6 +261,11 @@ export default function AdminPanelPage() {
       </div>
 
       <div className="page-content">
+        {/* Overview dashboard */}
+        {activeTab === 'overview' && (
+          <AdminOverview tasks={tasks} users={users} clients={clients} />
+        )}
+
         {/* Department Kanban view */}
         {isDeptTab && (
           <div className="kanban-wrapper">
@@ -277,6 +306,7 @@ export default function AdminPanelPage() {
                 showDept={false}
                 onTaskMove={handleTaskMove}
                 onCardClick={(t) => setSelectedTask(t)}
+                onArchiveTask={handleArchiveTask}
               />
             )}
           </div>
@@ -285,32 +315,32 @@ export default function AdminPanelPage() {
         {/* Clients management view */}
         {activeTab === 'clients' && (
           <div>
-            <div className="user-table-section">
-              <div className="user-table-header">
-                <h3>Clientes</h3>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    className="form-input"
-                    placeholder="Buscar cliente..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                    style={{ width: 200 }}
-                  />
-                  <button className="btn btn-primary" onClick={() => setShowNewClient(true)}>
-                    <IconPlus size={14} /> Novo Cliente
-                  </button>
-                </div>
-              </div>
+            <div className="kanban-toolbar" style={{ marginBottom: 16 }}>
+              <button className="btn btn-primary" onClick={() => setShowNewClient(true)}>
+                <IconPlus size={14} /> Novo Cliente
+              </button>
+              <input
+                className="form-input"
+                placeholder="Buscar por nome, obra, ORC ou tipo..."
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                style={{ width: 'auto', minWidth: 250 }}
+              />
+              <span className="text-sm text-muted">
+                {sortedClients.length} cliente{sortedClients.length !== 1 ? 's' : ''}
+              </span>
+            </div>
 
-              {loading ? (
-                <div className="loading-state">
-                  <div className="spinner" /> Carregando clientes...
-                </div>
-              ) : filteredClients.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
-                  {clientSearch ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}
-                </div>
-              ) : (
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner" /> Carregando clientes...
+              </div>
+            ) : sortedClients.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
+                {clientSearch ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}
+              </div>
+            ) : (
+              <div className="user-table-section">
                 <table className="user-table">
                   <thead>
                     <tr>
@@ -318,27 +348,42 @@ export default function AdminPanelPage() {
                       <th>Dados da Obra</th>
                       <th>ORC/OV/OSS</th>
                       <th>Tipo de Obra</th>
-                      <th>Tarefas</th>
+                      <th>Tarefas Ativas</th>
+                      <th>Status</th>
                       <th>Acoes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredClients.map((c) => {
-                      const clientTasks = tasks.filter((t) => t.clientId === c.id)
+                    {sortedClients.map((c) => {
+                      const active = tasks.some((t) => t.clientId === c.id && !t.archived && t.status !== 'concluido')
+                      const activeTasks = tasks.filter((t) => t.clientId === c.id && !t.archived && t.status !== 'concluido')
                       return (
-                        <tr key={c.id}>
+                        <tr
+                          key={c.id}
+                          style={{ cursor: 'pointer', opacity: active ? 1 : 0.55 }}
+                          onClick={() => setSelectedClientDetail(c)}
+                        >
                           <td><span className="font-bold">{c.nome}</span></td>
                           <td className="text-sm">{c.dadosObra || '\u2014'}</td>
                           <td className="text-sm">{c.orc || '\u2014'}</td>
                           <td className="text-sm">{c.tipoObra || '\u2014'}</td>
                           <td>
                             <span className="text-sm">
-                              {clientTasks.length > 0
-                                ? `${clientTasks.length} tarefa${clientTasks.length !== 1 ? 's' : ''}`
+                              {activeTasks.length > 0
+                                ? `${activeTasks.length} tarefa${activeTasks.length !== 1 ? 's' : ''}`
                                 : '\u2014'}
                             </span>
                           </td>
                           <td>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                              background: active ? 'var(--col-progress-header)20' : 'var(--gray-200)',
+                              color: active ? 'var(--col-progress-header)' : 'var(--text-muted)'
+                            }}>
+                              {active ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
                             <div className="table-actions">
                               <button
                                 className="btn-icon"
@@ -354,8 +399,8 @@ export default function AdminPanelPage() {
                     })}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -611,7 +656,10 @@ export default function AdminPanelPage() {
 
       {pendingFollowUp && (
         <FollowUpModal
-          onArchive={() => setPendingFollowUp(null)}
+          onArchive={async () => {
+            if (pendingFollowUp?.taskId) await handleArchiveTask(pendingFollowUp.taskId)
+            setPendingFollowUp(null)
+          }}
           onFollowUp={() => {
             setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
             setPendingFollowUp(null)
@@ -633,6 +681,14 @@ export default function AdminPanelPage() {
         <UserModal
           onClose={() => setShowNewUser(false)}
           onSaved={(s) => { handleUserSaved(s); setShowNewUser(false) }}
+        />
+      )}
+
+      {selectedClientDetail && (
+        <ClientDetailModal
+          client={selectedClientDetail}
+          onClose={() => setSelectedClientDetail(null)}
+          onClientUpdated={(s) => { handleClientSaved(s) }}
         />
       )}
 
