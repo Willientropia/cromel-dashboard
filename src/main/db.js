@@ -48,6 +48,7 @@ function migrateDB(data) {
     if (!('completedAt' in t)) {
       updates.completedAt = t.status === 'concluido' ? (t.updatedAt || t.createdAt) : null
     }
+    if (!('archived' in t)) updates.archived = false
     return Object.keys(updates).length > 0 ? { ...t, ...updates } : t
   })
 
@@ -271,11 +272,25 @@ export function createTask(callerUser, taskData) {
     clientId: taskData.clientId || null,
     serviceId: taskData.serviceId || null,
     completedAt: null,
+    archived: false,
     comments: [],
     createdAt: now,
     updatedAt: now
   }
   db.tasks.push(task)
+  writeDB(db)
+  return task
+}
+
+export function archiveTask(callerUser, id) {
+  const db = readDB()
+  const idx = db.tasks.findIndex((t) => t.id === id)
+  if (idx === -1) throw new Error('Tarefa não encontrada.')
+  const task = db.tasks[idx]
+  if (task.status !== 'concluido') throw new Error('Apenas tarefas concluídas podem ser arquivadas.')
+  task.archived = true
+  task.updatedAt = new Date().toISOString()
+  db.tasks[idx] = task
   writeDB(db)
   return task
 }

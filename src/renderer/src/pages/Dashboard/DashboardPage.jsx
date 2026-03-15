@@ -60,6 +60,8 @@ export default function DashboardPage() {
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
+    } else if (newStatus === 'concluido' && task?.clientId) {
+      setPendingFollowUp({ taskId, clientId: task.clientId, originalTitle: task.title })
     }
   }
 
@@ -75,9 +77,9 @@ export default function DashboardPage() {
     })
     showToast('Tarefa salva com sucesso!')
 
-    // Show follow-up modal when task is completed
+    // Show follow-up modal when task is completed via modal
     if (saved.status === 'concluido' && saved.clientId) {
-      setPendingFollowUp({ clientId: saved.clientId, originalTitle: saved.title })
+      setPendingFollowUp({ taskId: saved.id, clientId: saved.clientId, originalTitle: saved.title })
     }
   }
 
@@ -86,8 +88,25 @@ export default function DashboardPage() {
     showToast('Tarefa excluida.')
   }
 
-  // Filter out completed tasks from dashboard
-  let filteredTasks = tasks.filter((t) => t.status !== 'concluido')
+  async function handleArchiveTask(taskId) {
+    const res = await window.api.archiveTask(taskId)
+    if (res.success) {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      showToast('Tarefa arquivada!')
+    } else {
+      showToast(res.error || 'Erro ao arquivar.', 'error')
+    }
+  }
+
+  async function handleArchiveFromFollowUp() {
+    if (pendingFollowUp?.taskId) {
+      await handleArchiveTask(pendingFollowUp.taskId)
+    }
+    setPendingFollowUp(null)
+  }
+
+  // Dashboard shows non-archived tasks only
+  let filteredTasks = tasks.filter((t) => !t.archived)
   if (filterDept) filteredTasks = filteredTasks.filter((t) => t.department === filterDept)
   if (filterPriority) filteredTasks = filteredTasks.filter((t) => t.priority === filterPriority)
 
@@ -178,6 +197,7 @@ export default function DashboardPage() {
               showDept={deptTabs.length > 1 && !filterDept}
               onTaskMove={handleTaskMove}
               onCardClick={(t) => setSelectedTask(t)}
+              onArchiveTask={handleArchiveTask}
             />
           )}
         </div>
@@ -225,7 +245,7 @@ export default function DashboardPage() {
 
       {pendingFollowUp && (
         <FollowUpModal
-          onArchive={() => setPendingFollowUp(null)}
+          onArchive={handleArchiveFromFollowUp}
           onFollowUp={() => {
             setFollowUpDefaults({ clientId: pendingFollowUp.clientId, originalTitle: pendingFollowUp.originalTitle })
             setPendingFollowUp(null)
