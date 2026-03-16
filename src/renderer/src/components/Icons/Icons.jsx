@@ -344,6 +344,40 @@ export function IconCompass({ size = 18, ...props }) {
   )
 }
 
+export function IconTruck({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="1" y="3" width="15" height="13" />
+      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  )
+}
+
+export function IconPickupTruck({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2 15V10h8v5" />
+      <path d="M10 8h5l4 3v4H10V8z" />
+      <line x1="2" y1="15" x2="21" y2="15" />
+      <circle cx="6" cy="17.5" r="2" />
+      <circle cx="17" cy="17.5" r="2" />
+    </svg>
+  )
+}
+
+export function IconRadioactivity({ size = 18, ...props }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none" {...props}>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M13.5 9.4A3 3 0 0 0 10.5 9.4L7.5 4.2A9 9 0 0 1 16.5 4.2Z" />
+      <path d="M9 12A3 3 0 0 1 10.5 14.6L7.5 19.8A9 9 0 0 1 3 12Z" />
+      <path d="M13.5 14.6A3 3 0 0 0 15 12L21 12A9 9 0 0 1 16.5 19.8Z" />
+    </svg>
+  )
+}
+
 // Department icon mapping
 export const DEPT_ICON_MAP = {
   Administrativo: IconBriefcase,
@@ -351,8 +385,11 @@ export const DEPT_ICON_MAP = {
   Financeiro: IconDollar,
   Orcamentista: IconCalculator,
   Engenharia: IconGear,
-  Laboratorio: IconMicroscope,
-  Campo: IconCompass
+  'Laboratorio Eletrica': IconMicroscope,
+  Campo: IconCompass,
+  'Transporte Hospitalar': IconTruck,
+  Logistica: IconPickupTruck,
+  'Producao Radiologica': IconRadioactivity
 }
 
 export function DeptIcon({ department, size = 18, ...props }) {

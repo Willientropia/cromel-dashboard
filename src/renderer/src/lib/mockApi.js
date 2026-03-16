@@ -147,7 +147,7 @@ async function seedData() {
       passwordHash: await hashPassword('senha123'),
       plainPassword: 'senha123',
       role: 'user',
-      departments: ['Laboratorio'],
+      departments: ['Laboratorio Eletrica'],
       createdAt: now()
     },
     {
@@ -264,7 +264,7 @@ async function seedData() {
       description: 'Calibracao semestral dos equipamentos de medicao.',
       status: 'concluido',
       priority: 'alta',
-      department: 'Laboratorio',
+      department: 'Laboratorio Eletrica',
       createdBy: adminId,
       assignedTo: lab1Id,
       dueDate: null,
@@ -289,7 +289,7 @@ async function seedData() {
       description: 'Preparar e catalogar amostras do lote 2024-03.',
       status: 'pendente',
       priority: 'media',
-      department: 'Laboratorio',
+      department: 'Laboratorio Eletrica',
       createdBy: lab1Id,
       assignedTo: null,
       dueDate: futureDate(5),

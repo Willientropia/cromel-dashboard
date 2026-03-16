@@ -4,8 +4,11 @@ export const DEPARTMENTS = [
   'Financeiro',
   'Orcamentista',
   'Engenharia',
-  'Laboratorio',
-  'Campo'
+  'Laboratorio Eletrica',
+  'Campo',
+  'Transporte Hospitalar',
+  'Logistica',
+  'Producao Radiologica'
 ]
 
 export const DEPT_COLORS = {
@@ -14,8 +17,11 @@ export const DEPT_COLORS = {
   Financeiro: '#2E7D32',
   Orcamentista: '#FF6F00',
   Engenharia: '#1565C0',
-  Laboratorio: '#6A1B9A',
-  Campo: '#00695C'
+  'Laboratorio Eletrica': '#6A1B9A',
+  Campo: '#00695C',
+  'Transporte Hospitalar': '#01579B',
+  Logistica: '#BF360C',
+  'Producao Radiologica': '#F57F17'
 }
 
 export const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
