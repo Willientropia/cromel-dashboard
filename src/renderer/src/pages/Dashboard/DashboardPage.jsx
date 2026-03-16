@@ -17,15 +17,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
   const [showNewTask, setShowNewTask] = useState(false)
-  const [filterPriority, setFilterPriority] = useState('')
-  const [filterDept, setFilterDept] = useState(urlDept)
-  const [toast, setToast] = useState(null)
-  const [followUpDefaults, setFollowUpDefaults] = useState(null)
-  const [pendingFollowUp, setPendingFollowUp] = useState(null)
-
   const isAdmin = user?.role === 'admin'
   const depts = user?.departments || []
   const deptTabs = isAdmin ? DEPARTMENTS : depts
+  const effectiveDept = urlDept || (!isAdmin && depts.length === 1 ? depts[0] : '')
+
+  const [filterPriority, setFilterPriority] = useState('')
+  const [filterDept, setFilterDept] = useState(effectiveDept)
+  const [toast, setToast] = useState(null)
+  const [followUpDefaults, setFollowUpDefaults] = useState(null)
+  const [pendingFollowUp, setPendingFollowUp] = useState(null)
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
@@ -50,11 +51,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, location.key])
 
   useEffect(() => {
-    setFilterDept(urlDept)
-  }, [urlDept])
+    setFilterDept(effectiveDept)
+  }, [effectiveDept])
 
   async function handleTaskMove(taskId, newStatus) {
     const task = tasks.find((t) => t.id === taskId)
