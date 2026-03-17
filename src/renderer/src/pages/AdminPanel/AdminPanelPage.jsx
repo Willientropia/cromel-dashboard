@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
+import api from '../../api'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import UserModal from '../../components/UserModal/UserModal'
@@ -65,10 +66,10 @@ export default function AdminPanelPage() {
     setLoading(true)
     try {
       const [tasksRes, usersRes, clientsRes, trashRes] = await Promise.all([
-        window.api.listTasks({}),
-        window.api.listUsers(),
-        window.api.listClients(),
-        window.api.listTrash()
+        api.listTasks({}),
+        api.listUsers(),
+        api.listClients(),
+        api.listTrash()
       ])
       if (tasksRes.success) setTasks(tasksRes.data)
       if (usersRes.success) setUsers(usersRes.data)
@@ -92,7 +93,7 @@ export default function AdminPanelPage() {
   }, [urlDept, urlTab])
 
   async function handleArchiveTask(taskId) {
-    const res = await window.api.updateTask(taskId, { archived: true })
+    const res = await api.updateTask(taskId, { archived: true })
     if (res.success) {
       setTasks((prev) => prev.filter((t) => t.id !== taskId))
       showToast('Tarefa arquivada.')
@@ -108,7 +109,7 @@ export default function AdminPanelPage() {
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
       )
     )
-    const res = await window.api.updateTask(taskId, { status: newStatus })
+    const res = await api.updateTask(taskId, { status: newStatus })
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
@@ -177,7 +178,7 @@ export default function AdminPanelPage() {
   }
 
   async function handleRestoreTrash(id) {
-    const res = await window.api.restoreTrash(id)
+    const res = await api.restoreTrash(id)
     if (res.success) {
       showToast('Item restaurado!')
       loadData()

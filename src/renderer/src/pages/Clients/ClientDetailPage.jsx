@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import api from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import TaskModal from '../../components/TaskModal/TaskModal'
 import ClientModal from '../../components/ClientModal/ClientModal'
@@ -56,10 +57,10 @@ export default function ClientDetailPage() {
     setLoading(true)
     try {
       const [clientRes, tasksRes, usersRes, servicesRes] = await Promise.all([
-        window.api.getClient(clientId),
-        window.api.listTasks({}),
-        window.api.listUsersBasic(),
-        window.api.listServices(clientId)
+        api.getClient(clientId),
+        api.listTasks({}),
+        api.listUsersBasic(),
+        api.listServices(clientId)
       ])
       if (clientRes.success) setClient(clientRes.data)
       if (tasksRes.success) setTasks(tasksRes.data.filter((t) => t.clientId === clientId))
@@ -112,7 +113,7 @@ export default function ClientDetailPage() {
     if (!newServiceName.trim()) return
     setCreatingService(true)
     try {
-      const res = await window.api.createService({ clientId, nome: newServiceName.trim() })
+      const res = await api.createService({ clientId, nome: newServiceName.trim() })
       if (res.success) {
         setServices((prev) => [res.data, ...prev])
         setNewServiceName('')
@@ -129,7 +130,7 @@ export default function ClientDetailPage() {
 
   async function handleCompleteService(svc) {
     const newStatus = svc.status === 'concluido' ? 'ativo' : 'concluido'
-    const res = await window.api.updateService(svc.id, { status: newStatus })
+    const res = await api.updateService(svc.id, { status: newStatus })
     if (res.success) {
       setServices((prev) => prev.map((s) => (s.id === svc.id ? res.data : s)))
       showToast(newStatus === 'concluido' ? 'Servico concluido!' : 'Servico reaberto!')
@@ -140,7 +141,7 @@ export default function ClientDetailPage() {
 
   async function handleRenameService() {
     if (!editServiceName.trim() || !editingService) return
-    const res = await window.api.updateService(editingService, { nome: editServiceName.trim() })
+    const res = await api.updateService(editingService, { nome: editServiceName.trim() })
     if (res.success) {
       setServices((prev) => prev.map((s) => (s.id === editingService ? res.data : s)))
       setEditingService(null)
@@ -152,7 +153,7 @@ export default function ClientDetailPage() {
 
   async function handleDeleteService() {
     if (!confirmDeleteService) return
-    const res = await window.api.deleteService(confirmDeleteService)
+    const res = await api.deleteService(confirmDeleteService)
     if (res.success) {
       setServices((prev) => prev.filter((s) => s.id !== confirmDeleteService))
       setTasks((prev) => prev.filter((t) => t.serviceId !== confirmDeleteService))

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../api'
 import CommentSection from '../CommentSection/CommentSection'
 import DatePicker from '../DatePicker/DatePicker'
 import { IconClose, IconTrash, IconCalendar } from '../Icons/Icons'
@@ -42,14 +43,14 @@ export default function TaskModal({
   const [services, setServices] = useState([])
 
   useEffect(() => {
-    window.api.listClients().then((res) => {
+    api.listClients().then((res) => {
       if (res.success) setClients(res.data)
     })
   }, [])
 
   useEffect(() => {
     if (form.clientId) {
-      window.api.listServices(form.clientId).then((res) => {
+      api.listServices(form.clientId).then((res) => {
         if (res.success) setServices(res.data)
       })
     } else {
@@ -87,9 +88,9 @@ export default function TaskModal({
       }
       let res
       if (isEdit) {
-        res = await window.api.updateTask(task.id, payload)
+        res = await api.updateTask(task.id, payload)
       } else {
-        res = await window.api.createTask(payload)
+        res = await api.createTask(payload)
       }
       if (!res.success) {
         setError(res.error)
@@ -107,7 +108,7 @@ export default function TaskModal({
   async function handleDelete() {
     setDeleting(true)
     try {
-      const res = await window.api.deleteTask(task.id)
+      const res = await api.deleteTask(task.id)
       if (!res.success) {
         setError(res.error)
       } else {

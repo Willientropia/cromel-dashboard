@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
+import api from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import KanbanBoard from '../../components/KanbanBoard/KanbanBoard'
 import TaskModal from '../../components/TaskModal/TaskModal'
@@ -37,9 +38,9 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       const [tasksRes, usersRes, clientsRes] = await Promise.all([
-        window.api.listTasks({}),
-        window.api.listUsersBasic(),
-        window.api.listClients()
+        api.listTasks({}),
+        api.listUsersBasic(),
+        api.listClients()
       ])
       if (tasksRes.success) setTasks(tasksRes.data)
       if (usersRes.success) setUsers(usersRes.data)
@@ -64,7 +65,7 @@ export default function DashboardPage() {
         t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
       )
     )
-    const res = await window.api.updateTask(taskId, { status: newStatus })
+    const res = await api.updateTask(taskId, { status: newStatus })
     if (!res.success) {
       showToast(res.error || 'Erro ao mover tarefa.', 'error')
       loadData()
@@ -97,7 +98,7 @@ export default function DashboardPage() {
   }
 
   async function handleArchiveTask(taskId) {
-    const res = await window.api.archiveTask(taskId)
+    const res = await api.archiveTask(taskId)
     if (res.success) {
       setTasks((prev) => prev.filter((t) => t.id !== taskId))
       showToast('Tarefa arquivada!')
@@ -127,7 +128,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="page-header">
         <h1>
-          {depts.length === 1 ? (
+          {window.Capacitor ? 'Dashboard Cromel' : depts.length === 1 ? (
             <>
               <DeptIcon department={depts[0]} size={20} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
               {depts[0]}
@@ -138,9 +139,11 @@ export default function DashboardPage() {
             'Dashboard'
           )}
         </h1>
-        <span className="page-header-dept">
-          {isAdmin ? <><IconBolt size={13} /> Admin</> : depts.join(', ') || 'Geral'}
-        </span>
+        {!window.Capacitor && (
+          <span className="page-header-dept">
+            {isAdmin ? <><IconBolt size={13} /> Admin</> : depts.join(', ') || 'Geral'}
+          </span>
+        )}
       </div>
 
       {/* Content */}

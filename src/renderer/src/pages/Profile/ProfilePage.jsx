@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../api'
 import { IconUser, IconCamera, IconCheck } from '../../components/Icons/Icons'
 
 function getInitials(username) {
@@ -43,7 +44,7 @@ export default function ProfilePage() {
       const base64 = reader.result
       setLoading(true)
       try {
-        const res = await window.api.updateProfile({ photo: base64 })
+        const res = await api.updateProfile({ photo: base64 })
         if (res.success) {
           setUser((prev) => ({ ...prev, photo: base64 }))
           showToast('Foto atualizada!')
@@ -71,7 +72,7 @@ export default function ProfilePage() {
     }
     setLoading(true)
     try {
-      const res = await window.api.updateProfile({ password })
+      const res = await api.updateProfile({ password })
       if (res.success) {
         setPassword('')
         setConfirmPassword('')

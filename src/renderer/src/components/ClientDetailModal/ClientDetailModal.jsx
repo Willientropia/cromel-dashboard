@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../api'
 import TaskModal from '../TaskModal/TaskModal'
 import { IconClose, IconPlus, IconCheck, IconClock, IconEdit, IconTrash } from '../Icons/Icons'
 import { DEPT_COLORS } from '../../lib/constants'
@@ -57,9 +58,9 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
     setLoading(true)
     try {
       const [tasksRes, usersRes, servicesRes] = await Promise.all([
-        window.api.listTasks({}),
-        window.api.listUsersBasic(),
-        window.api.listServices(client.id)
+        api.listTasks({}),
+        api.listUsersBasic(),
+        api.listServices(client.id)
       ])
       if (tasksRes.success) setTasks(tasksRes.data.filter((t) => t.clientId === client.id))
       if (usersRes.success) setUsers(usersRes.data)
@@ -97,7 +98,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
     if (!newServiceName.trim()) return
     setCreatingService(true)
     try {
-      const res = await window.api.createService({ clientId: client.id, nome: newServiceName.trim() })
+      const res = await api.createService({ clientId: client.id, nome: newServiceName.trim() })
       if (res.success) {
         setServices((prev) => [res.data, ...prev])
         setNewServiceName('')
@@ -114,7 +115,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
 
   async function handleCompleteService(svc) {
     const newStatus = svc.status === 'concluido' ? 'ativo' : 'concluido'
-    const res = await window.api.updateService(svc.id, { status: newStatus })
+    const res = await api.updateService(svc.id, { status: newStatus })
     if (res.success) {
       setServices((prev) => prev.map((s) => (s.id === svc.id ? res.data : s)))
       showToast(newStatus === 'concluido' ? 'Servico concluido!' : 'Servico reaberto!')
@@ -125,7 +126,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
 
   async function handleRenameService() {
     if (!editServiceName.trim() || !editingService) return
-    const res = await window.api.updateService(editingService, { nome: editServiceName.trim() })
+    const res = await api.updateService(editingService, { nome: editServiceName.trim() })
     if (res.success) {
       setServices((prev) => prev.map((s) => (s.id === editingService ? res.data : s)))
       setEditingService(null)
@@ -137,7 +138,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
 
   async function handleDeleteService() {
     if (!confirmDeleteService) return
-    const res = await window.api.deleteService(confirmDeleteService)
+    const res = await api.deleteService(confirmDeleteService)
     if (res.success) {
       setServices((prev) => prev.filter((s) => s.id !== confirmDeleteService))
       setTasks((prev) => prev.filter((t) => t.serviceId !== confirmDeleteService))

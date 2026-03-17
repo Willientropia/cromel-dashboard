@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconClose, IconTrash } from '../Icons/Icons'
+import api from '../../api'
 import { TIPO_OBRA_OPTIONS } from '../../lib/constants'
 import ConfirmDeleteModal from '../ConfirmDeleteModal/ConfirmDeleteModal'
 
@@ -32,9 +33,9 @@ export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
     try {
       let res
       if (isEdit) {
-        res = await window.api.updateClient(client.id, form)
+        res = await api.updateClient(client.id, form)
       } else {
-        res = await window.api.createClient(form)
+        res = await api.createClient(form)
       }
       if (!res.success) {
         setError(res.error)
@@ -52,7 +53,7 @@ export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
   async function handleDelete() {
     setDeleting(true)
     try {
-      const res = await window.api.deleteClient(client.id)
+      const res = await api.deleteClient(client.id)
       if (!res.success) {
         setError(res.error)
         setShowConfirmDelete(false)

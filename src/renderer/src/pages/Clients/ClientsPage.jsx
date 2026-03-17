@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../api'
 import ClientModal from '../../components/ClientModal/ClientModal'
 import ClientDetailModal from '../../components/ClientDetailModal/ClientDetailModal'
 import { IconUsers, IconPlus, IconRefresh, IconEdit } from '../../components/Icons/Icons'
@@ -27,8 +28,8 @@ export default function ClientsPage() {
     setLoading(true)
     try {
       const [clientsRes, tasksRes] = await Promise.all([
-        window.api.listClients(),
-        window.api.listTasks({})
+        api.listClients(),
+        api.listTasks({})
       ])
       if (clientsRes.success) setClients(clientsRes.data)
       if (tasksRes.success) setTasks(tasksRes.data)

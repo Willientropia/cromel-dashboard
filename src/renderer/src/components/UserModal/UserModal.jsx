@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconClose, IconTrash, DeptIcon } from '../Icons/Icons'
+import api from '../../api'
 import { DEPARTMENTS } from '../../lib/constants'
 
 export default function UserModal({ user, onClose, onSaved, onDeleted }) {
@@ -48,9 +49,9 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
       if (isEdit) {
         const updates = { username: form.username, departments: form.departments }
         if (form.password) updates.password = form.password
-        res = await window.api.updateUser(user.id, updates)
+        res = await api.updateUser(user.id, updates)
       } else {
-        res = await window.api.createUser({
+        res = await api.createUser({
           username: form.username,
           password: form.password,
           departments: form.departments
@@ -73,7 +74,7 @@ export default function UserModal({ user, onClose, onSaved, onDeleted }) {
     if (!window.confirm(`Excluir o usuario "${user.username}"? Esta acao nao pode ser desfeita.`)) return
     setDeleting(true)
     try {
-      const res = await window.api.deleteUser(user.id)
+      const res = await api.deleteUser(user.id)
       if (!res.success) {
         setError(res.error)
       } else {

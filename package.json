@@ -4,7 +4,12 @@
   "description": "Cromel Dashboard - Service Management App",
   "main": "out/main/index.js",
   "type": "module",
+  "workspaces": [
+    "mobile"
+  ],
   "scripts": {
+    "mobile:dev": "npm run dev --workspace=mobile",
+    "mobile:build": "npm run build --workspace=mobile",
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build": "electron-vite build",

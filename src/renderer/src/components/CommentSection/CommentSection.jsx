@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../api'
 import { IconComment, IconSend } from '../Icons/Icons'
 
 function getInitials(username) {
@@ -42,7 +43,7 @@ export default function CommentSection({ taskId, comments = [], users = [], onCo
     setLoading(true)
     setError('')
     try {
-      const res = await window.api.addComment(taskId, text.trim())
+      const res = await api.addComment(taskId, text.trim())
       if (!res.success) {
         setError(res.error)
       } else {
