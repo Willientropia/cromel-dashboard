@@ -40,8 +40,12 @@ contextBridge.exposeInMainWorld('api', {
 
   // Trash
   listTrash: () => invoke('db:trash:list'),
-  restoreTrash: (index) => invoke('db:trash:restore', { index }),
+  restoreTrash: (id) => invoke('db:trash:restore', { id }),
 
   // Profile
-  updateProfile: (data) => invoke('db:profile:update', data)
+  updateProfile: (data) => invoke('db:profile:update', data),
+
+  // App
+  getVersion: () => invoke('app:version'),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_e, version) => cb(version))
 })

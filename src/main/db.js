@@ -1,18 +1,5 @@
-import { app } from 'electron'
-import fs from 'node:fs'
-import path from 'node:path'
 import crypto from 'node:crypto'
-
-const DB_PATH = path.join(app.getPath('userData'), 'cromel-db.json')
-
-const DEFAULT_DB = {
-  users: [],
-  tasks: [],
-  clients: [],
-  services: [],
-  trash: [],
-  session: { userId: null }
-}
+import { getDB } from './firebase.js'
 
 const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
 const TRASH_RETENTION_DAYS = 3
@@ -25,224 +12,156 @@ export function randomId() {
   return crypto.randomUUID()
 }
 
-function migrateDB(data) {
-  if (!data.clients) data.clients = []
-  if (!data.services) data.services = []
-  if (!data.trash) data.trash = []
+// ─── SESSION (em memória — não precisa persistir no Firebase) ─────────
+let _currentUser = null
 
-  // Migrate users: department (string) -> departments (array)
-  data.users = data.users.map((u) => {
-    if ('department' in u && !('departments' in u)) {
-      const departments = u.department ? [u.department] : []
-      const { department, ...rest } = u
-      return { ...rest, departments }
-    }
-    return u
-  })
-
-  // Migrate tasks: ensure new fields exist
-  data.tasks = data.tasks.map((t) => {
-    const updates = {}
-    if (!('clientId' in t)) updates.clientId = null
-    if (!('serviceId' in t)) updates.serviceId = null
-    if (!('completedAt' in t)) {
-      updates.completedAt = t.status === 'concluido' ? (t.updatedAt || t.createdAt) : null
-    }
-    if (!('archived' in t)) updates.archived = false
-    return Object.keys(updates).length > 0 ? { ...t, ...updates } : t
-  })
-
-  // Migrate clients: old fields -> new fields
-  data.clients = data.clients.map((c) => {
-    if ('cidade' in c && !('dadosObra' in c)) {
-      const dadosObra = [c.cidade, c.endereco].filter(Boolean).join(', ')
-      const { cidade, empresa, telefone, endereco, ...rest } = c
-      return { ...rest, dadosObra, orc: '', tipoObra: '' }
-    }
-    return c
-  })
-
-  return data
-}
-
-// Auto-purge trash items older than TRASH_RETENTION_DAYS
-function purgeExpiredTrash(db) {
-  const cutoff = Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000
-  const before = db.trash.length
-  db.trash = db.trash.filter((item) => new Date(item.deletedAt).getTime() > cutoff)
-  return db.trash.length !== before
-}
-
-export function readDB() {
-  try {
-    const raw = fs.readFileSync(DB_PATH, 'utf-8')
-    const data = JSON.parse(raw)
-    const migrated = migrateDB({
-      users: data.users || [],
-      tasks: data.tasks || [],
-      clients: data.clients || [],
-      services: data.services || [],
-      trash: data.trash || [],
-      session: data.session || { userId: null }
-    })
-    // Purge expired trash on read
-    if (purgeExpiredTrash(migrated)) {
-      try { fs.writeFileSync(DB_PATH, JSON.stringify(migrated, null, 2), 'utf-8') } catch {}
-    }
-    return migrated
-  } catch {
-    return { ...DEFAULT_DB }
-  }
-}
-
-export function writeDB(data) {
-  try {
-    const dir = path.dirname(DB_PATH)
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8')
-  } catch (err) {
-    console.error('Failed to write DB:', err)
-    throw err
-  }
-}
-
-export function initDB() {
-  const db = readDB()
-  if (db.users.length === 0) {
-    db.users.push({
-      id: randomId(),
-      username: 'admin',
-      passwordHash: hashPassword('admin123'),
-      role: 'admin',
-      departments: [],
-      createdAt: new Date().toISOString()
-    })
-    writeDB(db)
-    console.log('DB seeded with admin user.')
-  }
-  console.log('DB initialized at:', DB_PATH)
-}
-
-// ─── SESSION ──────────────────────────────────────────────────────────
-export function getSession() {
-  const db = readDB()
-  return db.session
-}
-
-export function setSession(userId) {
-  const db = readDB()
-  db.session = { userId }
-  writeDB(db)
+export function getCurrentUser() {
+  return _currentUser
 }
 
 export function clearSession() {
-  const db = readDB()
-  db.session = { userId: null }
-  writeDB(db)
+  _currentUser = null
 }
 
-export function getCurrentUser() {
-  const db = readDB()
-  const { userId } = db.session
-  if (!userId) return null
-  return db.users.find((u) => u.id === userId) || null
+// ─── INIT ─────────────────────────────────────────────────────────────
+export async function initDB() {
+  const db = getDB()
+  const snapshot = await db.collection('users').where('role', '==', 'admin').limit(1).get()
+  if (snapshot.empty) {
+    const id = randomId()
+    await db
+      .collection('users')
+      .doc(id)
+      .set({
+        username: 'admin',
+        passwordHash: hashPassword('admin123'),
+        role: 'admin',
+        departments: [],
+        photo: null,
+        createdAt: new Date().toISOString()
+      })
+    console.log('Usuário admin criado no Firestore com senha padrão: admin123')
+    console.log('Troque a senha assim que fizer login pela primeira vez!')
+  } else {
+    console.log('Banco de dados Firebase inicializado.')
+  }
+}
+
+// ─── AUTH ──────────────────────────────────────────────────────────────
+export async function loginUser(username, password) {
+  const db = getDB()
+  const snapshot = await db.collection('users').get()
+  const doc = snapshot.docs.find(
+    (d) => d.data().username.toLowerCase() === username.toLowerCase()
+  )
+  if (!doc) throw new Error('Usuário ou senha incorretos.')
+  const user = { id: doc.id, ...doc.data() }
+  if (user.passwordHash !== hashPassword(password)) throw new Error('Usuário ou senha incorretos.')
+  _currentUser = user
+  const { passwordHash, ...safe } = user
+  return safe
+}
+
+// ─── SESSION / USUÁRIO ATUAL ───────────────────────────────────────────
+export async function getUserById(id) {
+  const db = getDB()
+  const doc = await db.collection('users').doc(id).get()
+  if (!doc.exists) return null
+  const { passwordHash, ...safe } = { id: doc.id, ...doc.data() }
+  return safe
 }
 
 // ─── USERS ────────────────────────────────────────────────────────────
-export function listUsers() {
-  const db = readDB()
-  return db.users.map(({ passwordHash, ...u }) => u)
+export async function listUsers() {
+  const db = getDB()
+  const snapshot = await db.collection('users').get()
+  return snapshot.docs.map((doc) => {
+    const { passwordHash, ...safe } = { id: doc.id, ...doc.data() }
+    return safe
+  })
 }
 
-export function listUsersBasic() {
-  const db = readDB()
-  return db.users.map((u) => ({
-    id: u.id,
-    username: u.username,
-    photo: u.photo || null,
-    departments: u.departments || [],
-    role: u.role
-  }))
+export async function listUsersBasic() {
+  const db = getDB()
+  const snapshot = await db.collection('users').get()
+  return snapshot.docs.map((doc) => {
+    const u = doc.data()
+    return {
+      id: doc.id,
+      username: u.username,
+      photo: u.photo || null,
+      departments: u.departments || [],
+      role: u.role
+    }
+  })
 }
 
-export function getUserById(id) {
-  const db = readDB()
-  const user = db.users.find((u) => u.id === id)
-  if (!user) return null
-  const { passwordHash, ...safe } = user
-  return safe
-}
-
-export function createUser({ username, password, departments }) {
-  const db = readDB()
-  if (db.users.find((u) => u.username.toLowerCase() === username.toLowerCase())) {
-    throw new Error('Nome de usuário já existe.')
-  }
+export async function createUser({ username, password, departments }) {
+  const db = getDB()
+  const allSnapshot = await db.collection('users').get()
+  const existing = allSnapshot.docs.find(
+    (d) => d.data().username.toLowerCase() === username.toLowerCase()
+  )
+  if (existing) throw new Error('Nome de usuário já existe.')
+  const id = randomId()
   const user = {
-    id: randomId(),
     username: username.trim(),
     passwordHash: hashPassword(password),
-    plainPassword: password,
     role: 'user',
     departments: Array.isArray(departments) ? departments : [],
+    photo: null,
     createdAt: new Date().toISOString()
   }
-  db.users.push(user)
-  writeDB(db)
-  const { passwordHash: _h, ...safe } = user
-  return safe
+  await db.collection('users').doc(id).set(user)
+  return { id, ...user }
 }
 
-export function updateUser(id, { username, password, departments }) {
-  const db = readDB()
-  const idx = db.users.findIndex((u) => u.id === id)
-  if (idx === -1) throw new Error('Usuário não encontrado.')
-  const user = db.users[idx]
+export async function updateUser(id, { username, password, departments }) {
+  const db = getDB()
+  const docRef = db.collection('users').doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Usuário não encontrado.')
+  const user = doc.data()
+  const updates = {}
   if (username && username !== user.username) {
-    const dup = db.users.find((u) => u.id !== id && u.username.toLowerCase() === username.toLowerCase())
+    const allSnapshot = await db.collection('users').get()
+    const dup = allSnapshot.docs.find(
+      (d) => d.id !== id && d.data().username.toLowerCase() === username.toLowerCase()
+    )
     if (dup) throw new Error('Nome de usuário já existe.')
-    user.username = username.trim()
+    updates.username = username.trim()
   }
   if (password) {
-    user.passwordHash = hashPassword(password)
-    user.plainPassword = password
+    updates.passwordHash = hashPassword(password)
   }
   if (departments !== undefined) {
-    user.departments = Array.isArray(departments) ? departments : []
+    updates.departments = Array.isArray(departments) ? departments : []
   }
-  db.users[idx] = user
-  writeDB(db)
-  const { passwordHash: _h, ...safe } = user
+  await docRef.update(updates)
+  const { passwordHash, ...safe } = { id, ...user, ...updates }
   return safe
 }
 
-export function deleteUser(id) {
-  const db = readDB()
-  const idx = db.users.findIndex((u) => u.id === id)
-  if (idx === -1) throw new Error('Usuário não encontrado.')
-  if (db.users[idx].role === 'admin') throw new Error('Não é possível excluir o administrador.')
-  db.users.splice(idx, 1)
-  db.tasks = db.tasks.map((t) => (t.assignedTo === id ? { ...t, assignedTo: null } : t))
-  writeDB(db)
+export async function deleteUser(id) {
+  const db = getDB()
+  const doc = await db.collection('users').doc(id).get()
+  if (!doc.exists) throw new Error('Usuário não encontrado.')
+  if (doc.data().role === 'admin') throw new Error('Não é possível excluir o administrador.')
+  await db.collection('users').doc(id).delete()
+  // Desassociar tarefas
+  const tasksSnapshot = await db.collection('tasks').where('assignedTo', '==', id).get()
+  const batch = db.batch()
+  tasksSnapshot.docs.forEach((d) => batch.update(d.ref, { assignedTo: null }))
+  if (!tasksSnapshot.empty) await batch.commit()
   return { id }
 }
 
-export function loginUser(username, password) {
-  const db = readDB()
-  const user = db.users.find((u) => u.username.toLowerCase() === username.toLowerCase())
-  if (!user) throw new Error('Usuário ou senha incorretos.')
-  if (user.passwordHash !== hashPassword(password)) throw new Error('Usuário ou senha incorretos.')
-  setSession(user.id)
-  const { passwordHash, ...safe } = user
-  return safe
-}
-
 // ─── TASKS ────────────────────────────────────────────────────────────
-export function listTasks(callerUser, filters = {}) {
-  const db = readDB()
-  let tasks = db.tasks
+export async function listTasks(callerUser, filters = {}) {
+  const db = getDB()
+  const snapshot = await db.collection('tasks').get()
+  let tasks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 
-  const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
   const isClientManager = callerUser.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
 
   if (callerUser.role === 'admin') {
@@ -259,11 +178,11 @@ export function listTasks(callerUser, filters = {}) {
   return tasks.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
-export function createTask(callerUser, taskData) {
-  const db = readDB()
+export async function createTask(callerUser, taskData) {
+  const db = getDB()
   const now = new Date().toISOString()
+  const id = randomId()
   const task = {
-    id: randomId(),
     title: taskData.title.trim(),
     description: taskData.description?.trim() || '',
     status: taskData.status || 'pendente',
@@ -280,36 +199,34 @@ export function createTask(callerUser, taskData) {
     createdAt: now,
     updatedAt: now
   }
-  db.tasks.push(task)
-  writeDB(db)
-  return task
+  await db.collection('tasks').doc(id).set(task)
+  return { id, ...task }
 }
 
-export function archiveTask(callerUser, id) {
-  const db = readDB()
-  const idx = db.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error('Tarefa não encontrada.')
-  const task = db.tasks[idx]
+export async function archiveTask(callerUser, id) {
+  const db = getDB()
+  const docRef = db.collection('tasks').doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Tarefa não encontrada.')
+  const task = doc.data()
   if (task.status !== 'concluido') throw new Error('Apenas tarefas concluídas podem ser arquivadas.')
-  task.archived = true
-  task.updatedAt = new Date().toISOString()
-  db.tasks[idx] = task
-  writeDB(db)
-  return task
+  const updatedAt = new Date().toISOString()
+  await docRef.update({ archived: true, updatedAt })
+  return { id, ...task, archived: true, updatedAt }
 }
 
-export function updateTask(callerUser, id, updates) {
-  const db = readDB()
-  const idx = db.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error('Tarefa não encontrada.')
+export async function updateTask(callerUser, id, updates) {
+  const db = getDB()
+  const docRef = db.collection('tasks').doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Tarefa não encontrada.')
+  const task = doc.data()
 
-  const task = db.tasks[idx]
   if (callerUser.role !== 'admin' && !callerUser.departments.includes(task.department)) {
     throw new Error('Sem permissão para editar tarefas de outro departamento.')
   }
 
   const now = new Date().toISOString()
-  // Track completedAt
   let completedAt = task.completedAt
   if (updates.status === 'concluido' && task.status !== 'concluido') {
     completedAt = now
@@ -317,45 +234,44 @@ export function updateTask(callerUser, id, updates) {
     completedAt = null
   }
 
-  const updated = {
-    ...task,
-    ...updates,
-    id: task.id,
-    createdBy: task.createdBy,
-    comments: task.comments,
-    createdAt: task.createdAt,
-    completedAt,
-    updatedAt: now
-  }
-  db.tasks[idx] = updated
-  writeDB(db)
-  return updated
+  const safe = { ...updates }
+  delete safe.id
+  delete safe.createdBy
+  delete safe.comments
+  delete safe.createdAt
+
+  const updated = { ...safe, completedAt, updatedAt: now }
+  await docRef.update(updated)
+  return { id, ...task, ...updated }
 }
 
-export function deleteTask(callerUser, id) {
-  if (callerUser.role !== 'admin') {
-    throw new Error('Apenas administradores podem excluir tarefas.')
-  }
-  const db = readDB()
-  const idx = db.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error('Tarefa não encontrada.')
-  const task = db.tasks[idx]
-  db.tasks.splice(idx, 1)
-  // Move to trash
-  db.trash.push({ type: 'task', data: task, deletedAt: new Date().toISOString(), deletedBy: callerUser.id })
-  writeDB(db)
+export async function deleteTask(callerUser, id) {
+  if (callerUser.role !== 'admin') throw new Error('Apenas administradores podem excluir tarefas.')
+  const db = getDB()
+  const doc = await db.collection('tasks').doc(id).get()
+  if (!doc.exists) throw new Error('Tarefa não encontrada.')
+  const task = { id: doc.id, ...doc.data() }
+  await db.collection('tasks').doc(id).delete()
+  const trashId = randomId()
+  await db
+    .collection('trash')
+    .doc(trashId)
+    .set({ type: 'task', data: task, deletedAt: new Date().toISOString(), deletedBy: callerUser.id })
   return { id }
 }
 
-export function addComment(callerUser, taskId, text) {
+export async function addComment(callerUser, taskId, text) {
   if (!text || !text.trim()) throw new Error('Comentário não pode ser vazio.')
-  const db = readDB()
-  const idx = db.tasks.findIndex((t) => t.id === taskId)
-  if (idx === -1) throw new Error('Tarefa não encontrada.')
-  const task = db.tasks[idx]
+  const db = getDB()
+  const docRef = db.collection('tasks').doc(taskId)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Tarefa não encontrada.')
+  const task = doc.data()
+
   if (callerUser.role !== 'admin' && !callerUser.departments.includes(task.department)) {
     throw new Error('Sem permissão para comentar nesta tarefa.')
   }
+
   const comment = {
     id: randomId(),
     userId: callerUser.id,
@@ -363,10 +279,8 @@ export function addComment(callerUser, taskId, text) {
     text: text.trim(),
     createdAt: new Date().toISOString()
   }
-  task.comments.push(comment)
-  task.updatedAt = new Date().toISOString()
-  db.tasks[idx] = task
-  writeDB(db)
+  const comments = [...(task.comments || []), comment]
+  await docRef.update({ comments, updatedAt: new Date().toISOString() })
   return comment
 }
 
@@ -374,29 +288,31 @@ export function addComment(callerUser, taskId, text) {
 function requireClientPermission(callerUser) {
   if (callerUser.role === 'admin') return
   if (!callerUser.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))) {
-    throw new Error('Sem permissao para gerenciar clientes.')
+    throw new Error('Sem permissão para gerenciar clientes.')
   }
 }
 
-export function listClients(callerUser) {
-  const db = readDB()
-  return db.clients.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+export async function listClients(callerUser) {
+  const db = getDB()
+  const snapshot = await db.collection('clients').get()
+  const clients = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  return clients.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
-export function getClientById(callerUser, id) {
-  const db = readDB()
-  const client = db.clients.find((c) => c.id === id)
-  if (!client) throw new Error('Cliente nao encontrado.')
-  return client
+export async function getClientById(callerUser, id) {
+  const db = getDB()
+  const doc = await db.collection('clients').doc(id).get()
+  if (!doc.exists) throw new Error('Cliente não encontrado.')
+  return { id: doc.id, ...doc.data() }
 }
 
-export function createClient(callerUser, data) {
+export async function createClient(callerUser, data) {
   requireClientPermission(callerUser)
-  if (!data.nome || !data.nome.trim()) throw new Error('Nome do cliente e obrigatorio.')
-  const db = readDB()
+  if (!data.nome || !data.nome.trim()) throw new Error('Nome do cliente é obrigatório.')
+  const db = getDB()
   const now = new Date().toISOString()
+  const id = randomId()
   const client = {
-    id: randomId(),
     nome: data.nome.trim(),
     dadosObra: data.dadosObra?.trim() || '',
     orc: data.orc?.trim() || '',
@@ -405,64 +321,74 @@ export function createClient(callerUser, data) {
     createdAt: now,
     updatedAt: now
   }
-  db.clients.push(client)
-  writeDB(db)
-  return client
+  await db.collection('clients').doc(id).set(client)
+  return { id, ...client }
 }
 
-export function updateClient(callerUser, id, updates) {
+export async function updateClient(callerUser, id, updates) {
   requireClientPermission(callerUser)
-  const db = readDB()
-  const idx = db.clients.findIndex((c) => c.id === id)
-  if (idx === -1) throw new Error('Cliente nao encontrado.')
-  const client = db.clients[idx]
+  const db = getDB()
+  const docRef = db.collection('clients').doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Cliente não encontrado.')
   const safe = {}
   if (updates.nome !== undefined) safe.nome = updates.nome.trim()
   if (updates.dadosObra !== undefined) safe.dadosObra = updates.dadosObra.trim()
   if (updates.orc !== undefined) safe.orc = updates.orc.trim()
   if (updates.tipoObra !== undefined) safe.tipoObra = updates.tipoObra
-  const updated = { ...client, ...safe, updatedAt: new Date().toISOString() }
-  db.clients[idx] = updated
-  writeDB(db)
-  return updated
+  safe.updatedAt = new Date().toISOString()
+  await docRef.update(safe)
+  return { id, ...doc.data(), ...safe }
 }
 
-export function deleteClient(callerUser, id) {
+export async function deleteClient(callerUser, id) {
   requireClientPermission(callerUser)
-  const db = readDB()
-  const idx = db.clients.findIndex((c) => c.id === id)
-  if (idx === -1) throw new Error('Cliente nao encontrado.')
-  const client = db.clients[idx]
+  const db = getDB()
+  const doc = await db.collection('clients').doc(id).get()
+  if (!doc.exists) throw new Error('Cliente não encontrado.')
+  const client = { id: doc.id, ...doc.data() }
   const now = new Date().toISOString()
-  // Gather related services and tasks
-  const relatedServices = db.services.filter((s) => s.clientId === id)
-  const relatedTasks = db.tasks.filter((t) => t.clientId === id)
-  // Move to trash
-  db.trash.push({ type: 'client', data: client, relatedServices, relatedTasks, deletedAt: now, deletedBy: callerUser.id })
-  // Remove from active data
-  db.clients.splice(idx, 1)
-  db.services = db.services.filter((s) => s.clientId !== id)
-  db.tasks = db.tasks.filter((t) => t.clientId !== id)
-  writeDB(db)
+
+  const [servicesSnap, tasksSnap] = await Promise.all([
+    db.collection('services').where('clientId', '==', id).get(),
+    db.collection('tasks').where('clientId', '==', id).get()
+  ])
+  const relatedServices = servicesSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const relatedTasks = tasksSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+
+  const trashId = randomId()
+  const batch = db.batch()
+  batch.set(db.collection('trash').doc(trashId), {
+    type: 'client',
+    data: client,
+    relatedServices,
+    relatedTasks,
+    deletedAt: now,
+    deletedBy: callerUser.id
+  })
+  batch.delete(db.collection('clients').doc(id))
+  servicesSnap.docs.forEach((d) => batch.delete(d.ref))
+  tasksSnap.docs.forEach((d) => batch.delete(d.ref))
+  await batch.commit()
   return { id }
 }
 
 // ─── SERVICES ─────────────────────────────────────────────────────────
-export function listServices(callerUser, clientId) {
-  const db = readDB()
-  return db.services
-    .filter((s) => s.clientId === clientId)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+export async function listServices(callerUser, clientId) {
+  const db = getDB()
+  const snapshot = await db.collection('services').where('clientId', '==', clientId).get()
+  const services = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  return services.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
-export function createService(callerUser, data) {
+export async function createService(callerUser, data) {
   requireClientPermission(callerUser)
-  if (!data.nome || !data.nome.trim()) throw new Error('Nome do servico e obrigatorio.')
-  if (!data.clientId) throw new Error('Cliente e obrigatorio.')
-  const db = readDB()
+  if (!data.nome || !data.nome.trim()) throw new Error('Nome do serviço é obrigatório.')
+  if (!data.clientId) throw new Error('Cliente é obrigatório.')
+  const db = getDB()
   const now = new Date().toISOString()
+  const id = randomId()
   const service = {
-    id: randomId(),
     clientId: data.clientId,
     nome: data.nome.trim(),
     status: 'ativo',
@@ -471,17 +397,17 @@ export function createService(callerUser, data) {
     updatedAt: now,
     completedAt: null
   }
-  db.services.push(service)
-  writeDB(db)
-  return service
+  await db.collection('services').doc(id).set(service)
+  return { id, ...service }
 }
 
-export function updateService(callerUser, id, updates) {
+export async function updateService(callerUser, id, updates) {
   requireClientPermission(callerUser)
-  const db = readDB()
-  const idx = db.services.findIndex((s) => s.id === id)
-  if (idx === -1) throw new Error('Servico nao encontrado.')
-  const service = db.services[idx]
+  const db = getDB()
+  const docRef = db.collection('services').doc(id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Serviço não encontrado.')
+  const service = doc.data()
   const now = new Date().toISOString()
   const safe = {}
   if (updates.nome !== undefined) safe.nome = updates.nome.trim()
@@ -493,67 +419,97 @@ export function updateService(callerUser, id, updates) {
       safe.completedAt = null
     }
   }
-  const updated = { ...service, ...safe, updatedAt: now }
-  db.services[idx] = updated
-  writeDB(db)
-  return updated
+  safe.updatedAt = now
+  await docRef.update(safe)
+  return { id, ...service, ...safe }
 }
 
-export function deleteService(callerUser, id) {
+export async function deleteService(callerUser, id) {
   requireClientPermission(callerUser)
-  const db = readDB()
-  const idx = db.services.findIndex((s) => s.id === id)
-  if (idx === -1) throw new Error('Servico nao encontrado.')
-  const service = db.services[idx]
+  const db = getDB()
+  const doc = await db.collection('services').doc(id).get()
+  if (!doc.exists) throw new Error('Serviço não encontrado.')
+  const service = { id: doc.id, ...doc.data() }
   const now = new Date().toISOString()
-  const relatedTasks = db.tasks.filter((t) => t.serviceId === id)
-  db.trash.push({ type: 'service', data: service, relatedTasks, deletedAt: now, deletedBy: callerUser.id })
-  db.services.splice(idx, 1)
-  db.tasks = db.tasks.filter((t) => t.serviceId !== id)
-  writeDB(db)
+
+  const tasksSnap = await db.collection('tasks').where('serviceId', '==', id).get()
+  const relatedTasks = tasksSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+
+  const trashId = randomId()
+  const batch = db.batch()
+  batch.set(db.collection('trash').doc(trashId), {
+    type: 'service',
+    data: service,
+    relatedTasks,
+    deletedAt: now,
+    deletedBy: callerUser.id
+  })
+  batch.delete(db.collection('services').doc(id))
+  tasksSnap.docs.forEach((d) => batch.delete(d.ref))
+  await batch.commit()
   return { id }
 }
 
 // ─── TRASH ────────────────────────────────────────────────────────────
-export function listTrash(callerUser) {
+export async function listTrash(callerUser) {
   if (callerUser.role !== 'admin') throw new Error('Apenas administradores podem ver a lixeira.')
-  const db = readDB()
-  return db.trash.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt))
+  const db = getDB()
+  const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+
+  const snapshot = await db.collection('trash').get()
+
+  // Purgar itens expirados
+  const expired = snapshot.docs.filter((d) => d.data().deletedAt < cutoff)
+  if (expired.length > 0) {
+    const batch = db.batch()
+    expired.forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+  }
+
+  const active = snapshot.docs
+    .filter((d) => d.data().deletedAt >= cutoff)
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+
+  return active.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt))
 }
 
-export function restoreTrash(callerUser, trashIndex) {
+export async function restoreTrash(callerUser, trashId) {
   if (callerUser.role !== 'admin') throw new Error('Apenas administradores podem restaurar itens.')
-  const db = readDB()
-  if (trashIndex < 0 || trashIndex >= db.trash.length) throw new Error('Item nao encontrado na lixeira.')
-  const item = db.trash[trashIndex]
+  const db = getDB()
+  const trashDoc = await db.collection('trash').doc(trashId).get()
+  if (!trashDoc.exists) throw new Error('Item não encontrado na lixeira.')
+  const item = trashDoc.data()
+
+  const batch = db.batch()
   if (item.type === 'client') {
-    db.clients.push(item.data)
-    if (item.relatedServices) db.services.push(...item.relatedServices)
-    if (item.relatedTasks) db.tasks.push(...item.relatedTasks)
+    batch.set(db.collection('clients').doc(item.data.id), item.data)
+    ;(item.relatedServices || []).forEach((s) =>
+      batch.set(db.collection('services').doc(s.id), s)
+    )
+    ;(item.relatedTasks || []).forEach((t) => batch.set(db.collection('tasks').doc(t.id), t))
   } else if (item.type === 'service') {
-    db.services.push(item.data)
-    if (item.relatedTasks) db.tasks.push(...item.relatedTasks)
+    batch.set(db.collection('services').doc(item.data.id), item.data)
+    ;(item.relatedTasks || []).forEach((t) => batch.set(db.collection('tasks').doc(t.id), t))
   } else if (item.type === 'task') {
-    db.tasks.push(item.data)
+    batch.set(db.collection('tasks').doc(item.data.id), item.data)
   }
-  db.trash.splice(trashIndex, 1)
-  writeDB(db)
+  batch.delete(db.collection('trash').doc(trashId))
+  await batch.commit()
   return { restored: true }
 }
 
-// --- PROFILE ---
-export function updateProfile(callerUser, { photo, password }) {
-  const db = readDB()
-  const idx = db.users.findIndex((u) => u.id === callerUser.id)
-  if (idx === -1) throw new Error('Usuario nao encontrado.')
-  const user = db.users[idx]
-  if (photo !== undefined) user.photo = photo
-  if (password) {
-    user.passwordHash = hashPassword(password)
-    user.plainPassword = password
-  }
-  db.users[idx] = user
-  writeDB(db)
-  const { passwordHash: _h, ...safe } = user
+// ─── PROFILE ──────────────────────────────────────────────────────────
+export async function updateProfile(callerUser, { photo, password }) {
+  const db = getDB()
+  const docRef = db.collection('users').doc(callerUser.id)
+  const doc = await docRef.get()
+  if (!doc.exists) throw new Error('Usuário não encontrado.')
+  const updates = {}
+  if (photo !== undefined) updates.photo = photo
+  if (password) updates.passwordHash = hashPassword(password)
+  await docRef.update(updates)
+  // Atualizar sessão em memória
+  _currentUser = { ..._currentUser, ...updates }
+  const { passwordHash, ...safe } = { ...doc.data(), ...updates, id: callerUser.id }
   return safe
 }

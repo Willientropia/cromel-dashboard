@@ -84,6 +84,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
       }
       return [saved, ...prev]
     })
+    onClientUpdated?.()
     showToast('Tarefa salva!')
   }
 

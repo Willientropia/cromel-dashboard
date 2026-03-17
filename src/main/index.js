@@ -1,8 +1,44 @@
-import { app, shell, BrowserWindow, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, nativeImage, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import { registerIpcHandlers } from './ipcHandlers.js'
+import { initFirebase } from './firebase.js'
 import { initDB } from './db.js'
+
+function setupAutoUpdater(win) {
+  if (is.dev) return
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    win.webContents.send('update:available', info.version)
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog
+      .showMessageBox(win, {
+        type: 'info',
+        title: 'Atualização disponível',
+        message: 'Uma nova versão foi baixada.',
+        detail: 'O aplicativo será reiniciado para aplicar a atualização.',
+        buttons: ['Reiniciar agora', 'Mais tarde']
+      })
+      .then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall()
+      })
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err?.message)
+  })
+
+  // Verifica atualizações 3 segundos após o app abrir
+  setTimeout(() => autoUpdater.checkForUpdates(), 3000)
+}
+
+ipcMain.handle('app:version', () => app.getVersion())
 
 function createWindow() {
   // Use icon.png as the window icon (SVG not supported by nativeImage on all platforms)
@@ -27,7 +63,7 @@ function createWindow() {
     backgroundColor: '#F0F4F8',
     icon,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -36,6 +72,7 @@ function createWindow() {
 
   win.on('ready-to-show', () => {
     win.show()
+    setupAutoUpdater(win)
   })
 
   win.webContents.setWindowOpenHandler((details) => {
@@ -50,8 +87,9 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  initDB()
+app.whenReady().then(async () => {
+  initFirebase()
+  await initDB()
   registerIpcHandlers()
   createWindow()
 

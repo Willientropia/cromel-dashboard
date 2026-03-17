@@ -5,6 +5,7 @@ directories:
   output: dist
 files:
   - out/**/*
+  - firebase-service-account.json
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,mjs}'
@@ -31,5 +32,7 @@ linux:
   category: Utility
 npmRebuild: false
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: Willientropia
+  repo: cromel-dashboard
+  private: true

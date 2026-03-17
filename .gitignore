@@ -5,3 +5,9 @@ out
 *.local
 *.env
 *.log
+
+# Firebase - NUNCA commitar credenciais!
+firebase-service-account.json
+
+# Claude Code
+.claude/

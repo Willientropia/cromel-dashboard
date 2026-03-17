@@ -1432,6 +1432,30 @@ table.user-table tr:hover td {
   gap: 8px;
 }
 
+.login-version {
+  position: fixed;
+  bottom: 14px;
+  right: 18px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.login-update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--primary);
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+  padding: 8px 16px;
+  z-index: 9999;
+}
+
 .login-btn {
   width: 100%;
   padding: 11px;

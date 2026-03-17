@@ -3,7 +3,6 @@ import {
   getCurrentUser,
   loginUser,
   clearSession,
-  getSession,
   getUserById,
   listUsers,
   listUsersBasic,
@@ -58,7 +57,7 @@ export function registerIpcHandlers() {
   ipcMain.handle(
     'auth:login',
     wrap(async (_e, { username, password }) => {
-      return loginUser(username, password)
+      return await loginUser(username, password)
     })
   )
 
@@ -73,9 +72,9 @@ export function registerIpcHandlers() {
   ipcMain.handle(
     'auth:session',
     wrap(async () => {
-      const session = getSession()
-      if (!session.userId) return null
-      return getUserById(session.userId)
+      const user = getCurrentUser()
+      if (!user) return null
+      return await getUserById(user.id)
     })
   )
 
@@ -84,7 +83,7 @@ export function registerIpcHandlers() {
     'db:users:list-basic',
     wrap(async () => {
       requireAuth()
-      return listUsersBasic()
+      return await listUsersBasic()
     })
   )
 
@@ -92,7 +91,7 @@ export function registerIpcHandlers() {
     'db:users:list',
     wrap(async () => {
       requireAdmin()
-      return listUsers()
+      return await listUsers()
     })
   )
 
@@ -100,7 +99,7 @@ export function registerIpcHandlers() {
     'db:users:create',
     wrap(async (_e, data) => {
       requireAdmin()
-      return createUser(data)
+      return await createUser(data)
     })
   )
 
@@ -108,7 +107,7 @@ export function registerIpcHandlers() {
     'db:users:update',
     wrap(async (_e, { id, ...data }) => {
       requireAdmin()
-      return updateUser(id, data)
+      return await updateUser(id, data)
     })
   )
 
@@ -116,7 +115,7 @@ export function registerIpcHandlers() {
     'db:users:delete',
     wrap(async (_e, { id }) => {
       requireAdmin()
-      return deleteUser(id)
+      return await deleteUser(id)
     })
   )
 
@@ -125,7 +124,7 @@ export function registerIpcHandlers() {
     'db:tasks:list',
     wrap(async (_e, filters) => {
       const user = requireAuth()
-      return listTasks(user, filters)
+      return await listTasks(user, filters)
     })
   )
 
@@ -133,7 +132,7 @@ export function registerIpcHandlers() {
     'db:tasks:create',
     wrap(async (_e, data) => {
       const user = requireAuth()
-      return createTask(user, data)
+      return await createTask(user, data)
     })
   )
 
@@ -141,7 +140,7 @@ export function registerIpcHandlers() {
     'db:tasks:update',
     wrap(async (_e, { id, ...updates }) => {
       const user = requireAuth()
-      return updateTask(user, id, updates)
+      return await updateTask(user, id, updates)
     })
   )
 
@@ -149,7 +148,7 @@ export function registerIpcHandlers() {
     'db:tasks:delete',
     wrap(async (_e, { id }) => {
       const user = requireAdmin()
-      return deleteTask(user, id)
+      return await deleteTask(user, id)
     })
   )
 
@@ -157,7 +156,7 @@ export function registerIpcHandlers() {
     'db:tasks:archive',
     wrap(async (_e, { id }) => {
       const user = requireAuth()
-      return archiveTask(user, id)
+      return await archiveTask(user, id)
     })
   )
 
@@ -165,7 +164,7 @@ export function registerIpcHandlers() {
     'db:tasks:comment',
     wrap(async (_e, { taskId, text }) => {
       const user = requireAuth()
-      return addComment(user, taskId, text)
+      return await addComment(user, taskId, text)
     })
   )
 
@@ -174,7 +173,7 @@ export function registerIpcHandlers() {
     'db:clients:list',
     wrap(async () => {
       const user = requireAuth()
-      return listClients(user)
+      return await listClients(user)
     })
   )
 
@@ -182,7 +181,7 @@ export function registerIpcHandlers() {
     'db:clients:get',
     wrap(async (_e, { id }) => {
       const user = requireAuth()
-      return getClientById(user, id)
+      return await getClientById(user, id)
     })
   )
 
@@ -190,7 +189,7 @@ export function registerIpcHandlers() {
     'db:clients:create',
     wrap(async (_e, data) => {
       const user = requireAuth()
-      return createClient(user, data)
+      return await createClient(user, data)
     })
   )
 
@@ -198,7 +197,7 @@ export function registerIpcHandlers() {
     'db:clients:update',
     wrap(async (_e, { id, ...data }) => {
       const user = requireAuth()
-      return updateClient(user, id, data)
+      return await updateClient(user, id, data)
     })
   )
 
@@ -206,7 +205,7 @@ export function registerIpcHandlers() {
     'db:clients:delete',
     wrap(async (_e, { id }) => {
       const user = requireAuth()
-      return deleteClient(user, id)
+      return await deleteClient(user, id)
     })
   )
 
@@ -215,7 +214,7 @@ export function registerIpcHandlers() {
     'db:services:list',
     wrap(async (_e, { clientId }) => {
       const user = requireAuth()
-      return listServices(user, clientId)
+      return await listServices(user, clientId)
     })
   )
 
@@ -223,7 +222,7 @@ export function registerIpcHandlers() {
     'db:services:create',
     wrap(async (_e, data) => {
       const user = requireAuth()
-      return createService(user, data)
+      return await createService(user, data)
     })
   )
 
@@ -231,7 +230,7 @@ export function registerIpcHandlers() {
     'db:services:update',
     wrap(async (_e, { id, ...data }) => {
       const user = requireAuth()
-      return updateService(user, id, data)
+      return await updateService(user, id, data)
     })
   )
 
@@ -239,7 +238,7 @@ export function registerIpcHandlers() {
     'db:services:delete',
     wrap(async (_e, { id }) => {
       const user = requireAuth()
-      return deleteService(user, id)
+      return await deleteService(user, id)
     })
   )
 
@@ -248,15 +247,15 @@ export function registerIpcHandlers() {
     'db:trash:list',
     wrap(async () => {
       const user = requireAdmin()
-      return listTrash(user)
+      return await listTrash(user)
     })
   )
 
   ipcMain.handle(
     'db:trash:restore',
-    wrap(async (_e, { index }) => {
+    wrap(async (_e, { id }) => {
       const user = requireAdmin()
-      return restoreTrash(user, index)
+      return await restoreTrash(user, id)
     })
   )
 
@@ -265,7 +264,7 @@ export function registerIpcHandlers() {
     'db:profile:update',
     wrap(async (_e, data) => {
       const user = requireAuth()
-      return updateProfile(user, data)
+      return await updateProfile(user, data)
     })
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { IconWarning } from '../../components/Icons/Icons'
@@ -11,6 +11,13 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [version, setVersion] = useState('')
+  const [updateVersion, setUpdateVersion] = useState(null)
+
+  useEffect(() => {
+    window.api?.getVersion?.().then((v) => setVersion(v)).catch(() => {})
+    window.api?.onUpdateAvailable?.((v) => setUpdateVersion(v))
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -32,6 +39,11 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {updateVersion && (
+        <div className="login-update-banner">
+          Nova versão {updateVersion} disponível — baixando automaticamente...
+        </div>
+      )}
       <div className="login-card">
         <div className="login-logo">
           <img src={logoUrl} alt="Cromel Logo" />
@@ -93,6 +105,9 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
+      {version && (
+        <div className="login-version">v{version}</div>
+      )}
     </div>
   )
 }

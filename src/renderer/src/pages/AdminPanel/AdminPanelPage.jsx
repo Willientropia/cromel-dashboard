@@ -176,8 +176,8 @@ export default function AdminPanelPage() {
     loadData()
   }
 
-  async function handleRestoreTrash(index) {
-    const res = await window.api.restoreTrash(index)
+  async function handleRestoreTrash(id) {
+    const res = await window.api.restoreTrash(id)
     if (res.success) {
       showToast('Item restaurado!')
       loadData()
@@ -610,7 +610,7 @@ export default function AdminPanelPage() {
                           <td>
                             <button
                               className="btn btn-secondary btn-sm"
-                              onClick={() => handleRestoreTrash(idx)}
+                              onClick={() => handleRestoreTrash(entry.id)}
                             >
                               Restaurar
                             </button>
@@ -688,7 +688,7 @@ export default function AdminPanelPage() {
         <ClientDetailModal
           client={selectedClientDetail}
           onClose={() => setSelectedClientDetail(null)}
-          onClientUpdated={(s) => { handleClientSaved(s) }}
+          onClientUpdated={loadData}
         />
       )}
 
