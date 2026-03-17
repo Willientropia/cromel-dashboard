@@ -1,0 +1,13 @@
+{
+  "appId": "com.cromel.dashboard",
+  "appName": "Cromel Dashboard",
+  "webDir": "dist",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false
+    }
+  }
+}
