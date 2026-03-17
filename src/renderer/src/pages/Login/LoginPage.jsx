@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { IconWarning } from '../../components/Icons/Icons'
 import logoUrl from '../../assets/logo.svg'
+import api from '../../api'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -15,8 +16,8 @@ export default function LoginPage() {
   const [updateVersion, setUpdateVersion] = useState(null)
 
   useEffect(() => {
-    window.api?.getVersion?.().then((v) => setVersion(v)).catch(() => {})
-    window.api?.onUpdateAvailable?.((v) => setUpdateVersion(v))
+    api?.getVersion?.().then((v) => setVersion(v)).catch(() => {})
+    api?.onUpdateAvailable?.((v) => setUpdateVersion(v))
   }, [])
 
   async function handleSubmit(e) {

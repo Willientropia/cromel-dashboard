@@ -3,6 +3,8 @@
  * Mesmos métodos que o desktop expõe via window.api,
  * mas chama o Firestore diretamente sem IPC.
  */
+import pkg from '../../package.json'
+import { onUpdateAvailable as _onUpdateAvailable } from '../updater'
 import {
   collection,
   doc,
@@ -422,9 +424,9 @@ const api = {
   // Profile
   updateProfile: (data) => wrap(() => _updateProfile(data))(),
 
-  // App version (sem-op no mobile — atualização via capgo)
-  getVersion: async () => ok('mobile'),
-  onUpdateAvailable: () => {}
+  // App version — retorna string pura igual ao desktop (não usa ok() wrapper)
+  getVersion: async () => pkg.version,
+  onUpdateAvailable: (cb) => _onUpdateAvailable(cb, pkg.version)
 }
 
 export default api
