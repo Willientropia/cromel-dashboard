@@ -1,16 +1,22 @@
 import { app, shell, BrowserWindow, nativeImage, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { autoUpdater } from 'electron-updater'
+import updaterPkg from 'electron-updater'
+const { autoUpdater } = updaterPkg
 import { registerIpcHandlers } from './ipcHandlers.js'
 import { initFirebase } from './firebase.js'
 import { initDB } from './db.js'
+
+// Token com permissão apenas de leitura de releases (Contents: Read-only)
+// Necessário para baixar atualizações de repositório privado
+const GH_TOKEN = 'COLE_SEU_TOKEN_AQUI'
 
 function setupAutoUpdater(win) {
   if (is.dev) return
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
+  if (GH_TOKEN) autoUpdater.requestHeaders = { Authorization: `token ${GH_TOKEN}` }
 
   autoUpdater.on('update-available', (info) => {
     win.webContents.send('update:available', info.version)
