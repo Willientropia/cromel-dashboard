@@ -1,6 +1,6 @@
 {
   "name": "cromel-dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cromel Dashboard - Service Management App",
   "main": "out/main/index.js",
   "type": "module",
@@ -16,6 +16,7 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
+    "release:win": "npm run build && electron-builder --win --publish always",
     "preview:web": "vite --config vite.web.config.js"
   },
   "dependencies": {

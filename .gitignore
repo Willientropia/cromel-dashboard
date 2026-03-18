@@ -11,3 +11,7 @@ firebase-service-account.json
 
 # Claude Code
 .claude/
+
+# Script de release local (contém token de escrita no GitHub)
+release.ps1
+mobile/mobile-bundle.zip

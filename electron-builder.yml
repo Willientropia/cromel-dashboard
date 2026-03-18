@@ -36,3 +36,4 @@ publish:
   owner: Willientropia
   repo: cromel-dashboard
   private: true
+  releaseType: release

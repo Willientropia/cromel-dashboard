@@ -9,7 +9,7 @@ import { initDB } from './db.js'
 
 // Token com permissão apenas de leitura de releases (Contents: Read-only)
 // Necessário para baixar atualizações de repositório privado
-const GH_TOKEN = 'COLE_SEU_TOKEN_AQUI'
+const GH_TOKEN = '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'
 
 function setupAutoUpdater(win) {
   if (is.dev) return
