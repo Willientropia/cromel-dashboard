@@ -46,5 +46,6 @@ export const TIPO_OBRA_OPTIONS = [
   'Visita tecnica Engenheiro',
   'Visita tecnica Padrao',
   'Visita Comercial',
+  'Aluguel de equipamento',
   'Outros'
 ]

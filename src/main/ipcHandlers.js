@@ -15,6 +15,7 @@ import {
   deleteTask,
   archiveTask,
   addComment,
+  uploadCommentPhoto,
   updateProfile,
   listClients,
   getClientById,
@@ -162,9 +163,17 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(
     'db:tasks:comment',
-    wrap(async (_e, { taskId, text }) => {
+    wrap(async (_e, { taskId, text, imageUrls }) => {
       const user = requireAuth()
-      return await addComment(user, taskId, text)
+      return await addComment(user, taskId, text, imageUrls)
+    })
+  )
+
+  ipcMain.handle(
+    'db:tasks:upload-photo',
+    wrap(async (_e, { buffer, fileName, mimeType }) => {
+      const user = requireAuth()
+      return await uploadCommentPhoto(user, buffer, fileName, mimeType)
     })
   )
 

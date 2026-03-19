@@ -104,7 +104,7 @@ export default function ClientModal({ client, onClose, onSaved, onDeleted }) {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">ORC/OV/OSS</label>
+                  <label className="form-label">ORC/OV/OS/CT-e</label>
                   <input
                     className="form-input"
                     value={form.orc}

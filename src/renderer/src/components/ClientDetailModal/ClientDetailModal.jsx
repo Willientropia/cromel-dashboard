@@ -378,7 +378,8 @@ export default function ClientDetailModal({ client, onClose, onClientUpdated }) 
 }
 
 function TaskRow({ task, users, onClick, showTiming = false }) {
-  const assignee = users.find((u) => u.id === task.assignedTo)
+  const assignedIds = Array.isArray(task.assignedTo) ? task.assignedTo : task.assignedTo ? [task.assignedTo] : []
+  const assignees = users.filter((u) => assignedIds.includes(u.id))
   const duration = showTiming ? formatDuration(task.createdAt, task.completedAt) : null
   const openTime = !showTiming ? formatOpenTime(task.createdAt) : null
 
@@ -398,7 +399,7 @@ function TaskRow({ task, users, onClick, showTiming = false }) {
             {task.department}
           </span>
           <span>{STATUS_LABELS[task.status] || task.status}</span>
-          {assignee && <span>@ {assignee.username}</span>}
+          {assignees.length > 0 && <span>@ {assignees.map((a) => a.username).join(', ')}</span>}
           {openTime && (
             <span className="task-timing">
               <IconClock size={11} /> Aberta ha {openTime}

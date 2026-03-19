@@ -1,5 +1,10 @@
 import crypto from 'node:crypto'
 import { getDB } from './firebase.js'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = 'https://fnfdilnlexznzkmzogwd.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZuZmRpbG5sZXh6bnprbXpvZ3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDMwNTksImV4cCI6MjA4OTUxOTA1OX0.z6vF4kvCkpAAbtAAMrSvYqZG8-5RkwaQ7VLB_9HbEj4'
+const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const CLIENT_MANAGER_DEPTS = ['Administrativo', 'Comercial', 'Financeiro']
 const TRASH_RETENTION_DAYS = 3
@@ -235,6 +240,9 @@ export async function updateTask(callerUser, id, updates) {
   }
 
   const safe = { ...updates }
+  if (updates.status && updates.status !== 'concluido') {
+    safe.archived = false
+  }
   delete safe.id
   delete safe.createdBy
   delete safe.comments
@@ -260,15 +268,31 @@ export async function deleteTask(callerUser, id) {
   return { id }
 }
 
-export async function addComment(callerUser, taskId, text) {
-  if (!text || !text.trim()) throw new Error('Comentário não pode ser vazio.')
+export async function uploadCommentPhoto(callerUser, buffer, fileName, mimeType) {
+  const timestamp = Date.now()
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const filePath = `${timestamp}-${safeName}`
+  const { error } = await supabase.storage
+    .from('comment-photos')
+    .upload(filePath, Buffer.from(buffer), { contentType: mimeType, upsert: false })
+  if (error) throw new Error(error.message)
+  const { data } = supabase.storage.from('comment-photos').getPublicUrl(filePath)
+  return data.publicUrl
+}
+
+export async function addComment(callerUser, taskId, text, imageUrls = []) {
+  if (!text?.trim() && !imageUrls?.length) throw new Error('Comentário não pode ser vazio.')
   const db = getDB()
   const docRef = db.collection('tasks').doc(taskId)
   const doc = await docRef.get()
   if (!doc.exists) throw new Error('Tarefa não encontrada.')
   const task = doc.data()
 
-  if (callerUser.role !== 'admin' && !callerUser.departments.includes(task.department)) {
+  const canComment =
+    callerUser.role === 'admin' ||
+    callerUser.departments?.includes(task.department) ||
+    callerUser.departments?.some((d) => CLIENT_MANAGER_DEPTS.includes(d))
+  if (!canComment) {
     throw new Error('Sem permissão para comentar nesta tarefa.')
   }
 
@@ -276,9 +300,10 @@ export async function addComment(callerUser, taskId, text) {
     id: randomId(),
     userId: callerUser.id,
     username: callerUser.username,
-    text: text.trim(),
+    text: text?.trim() || '',
     createdAt: new Date().toISOString()
   }
+  if (imageUrls?.length) comment.imageUrls = imageUrls
   const comments = [...(task.comments || []), comment]
   await docRef.update({ comments, updatedAt: new Date().toISOString() })
   return comment

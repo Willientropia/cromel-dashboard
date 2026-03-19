@@ -4,7 +4,7 @@
  * mas chama o Firestore diretamente sem IPC.
  */
 import pkg from '../../package.json'
-import { onUpdateAvailable as _onUpdateAvailable } from '../updater'
+import { onUpdateAvailable as _onUpdateAvailable, downloadAndApply } from '../updater'
 import {
   collection,
   doc,
@@ -19,6 +19,11 @@ import {
   serverTimestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = 'https://fnfdilnlexznzkmzogwd.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZuZmRpbG5sZXh6bnprbXpvZ3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDMwNTksImV4cCI6MjA4OTUxOTA1OX0.z6vF4kvCkpAAbtAAMrSvYqZG8-5RkwaQ7VLB_9HbEj4'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
 
@@ -208,7 +213,11 @@ async function _createTask(data) {
 async function _updateTask(id, updates) {
   requireAuth()
   const taskRef = doc(db, 'tasks', id)
-  await updateDoc(taskRef, { ...updates, updatedAt: new Date().toISOString() })
+  const payload = { ...updates, updatedAt: new Date().toISOString() }
+  if (updates.status && updates.status !== 'concluido') {
+    payload.archived = false
+  }
+  await updateDoc(taskRef, payload)
   const snap = await getDoc(taskRef)
   return { id: snap.id, ...snap.data() }
 }
@@ -233,15 +242,29 @@ async function _archiveTask(id) {
   return null
 }
 
-async function _addComment(taskId, text) {
+async function _uploadCommentPhoto(file) {
+  requireAuth()
+  const timestamp = Date.now()
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const filePath = `${timestamp}-${safeName}`
+  const { error } = await supabase.storage
+    .from('comment-photos')
+    .upload(filePath, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  const { data } = supabase.storage.from('comment-photos').getPublicUrl(filePath)
+  return data.publicUrl
+}
+
+async function _addComment(taskId, text, imageUrls = []) {
   const user = requireAuth()
   const comment = {
     id: crypto.randomUUID(),
     userId: user.id,
     username: user.username,
-    text,
+    text: text || '',
     createdAt: new Date().toISOString()
   }
+  if (imageUrls?.length) comment.imageUrls = imageUrls
   const taskRef = doc(db, 'tasks', taskId)
   const snap = await getDoc(taskRef)
   if (!snap.exists()) throw new Error('Tarefa não encontrada.')
@@ -402,7 +425,8 @@ const api = {
   updateTask: (id, updates) => wrap(() => _updateTask(id, updates))(),
   deleteTask: (id) => wrap(() => _deleteTask(id))(),
   archiveTask: (id) => wrap(() => _archiveTask(id))(),
-  addComment: (taskId, text) => wrap(() => _addComment(taskId, text))(),
+  addComment: (taskId, text, imageUrls) => wrap(() => _addComment(taskId, text, imageUrls))(),
+  uploadCommentPhoto: (file) => wrap(() => _uploadCommentPhoto(file))(),
 
   // Clients
   listClients: wrap(_listClients),
@@ -426,7 +450,8 @@ const api = {
 
   // App version — retorna string pura igual ao desktop (não usa ok() wrapper)
   getVersion: async () => pkg.version,
-  onUpdateAvailable: (cb) => _onUpdateAvailable(cb, pkg.version)
+  onUpdateAvailable: (cb) => _onUpdateAvailable(cb, pkg.version),
+  applyUpdate: () => wrap(() => downloadAndApply())()
 }
 
 export default api

@@ -8,6 +8,10 @@
     },
     "CapacitorUpdater": {
       "autoUpdate": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "overlaysWebView": true
     }
   }
 }

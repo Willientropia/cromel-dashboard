@@ -23,7 +23,8 @@ contextBridge.exposeInMainWorld('api', {
   updateTask: (id, updates) => invoke('db:tasks:update', { id, ...updates }),
   deleteTask: (id) => invoke('db:tasks:delete', { id }),
   archiveTask: (id) => invoke('db:tasks:archive', { id }),
-  addComment: (taskId, text) => invoke('db:tasks:comment', { taskId, text }),
+  addComment: (taskId, text, imageUrls) => invoke('db:tasks:comment', { taskId, text, imageUrls }),
+  uploadCommentPhoto: (buffer, fileName, mimeType) => invoke('db:tasks:upload-photo', { buffer, fileName, mimeType }),
 
   // Clients
   listClients: () => invoke('db:clients:list'),

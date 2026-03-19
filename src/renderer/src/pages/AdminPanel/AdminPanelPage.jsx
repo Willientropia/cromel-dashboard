@@ -485,7 +485,7 @@ export default function AdminPanelPage() {
                       </tr>
                     ) : (
                       nonAdminUsers.map((u) => {
-                        const userTasks = tasks.filter((t) => t.assignedTo === u.id)
+                        const userTasks = tasks.filter((t) => Array.isArray(t.assignedTo) ? t.assignedTo.includes(u.id) : t.assignedTo === u.id)
                         return (
                           <tr key={u.id}>
                             <td>

@@ -1450,11 +1450,41 @@ table.user-table tr:hover td {
   right: 0;
   background: var(--primary);
   color: #fff;
-  text-align: center;
   font-size: 13px;
   padding: 8px 16px;
+  padding-top: calc(8px + var(--safe-top, env(safe-area-inset-top)));
   z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+
+.update-install-error {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.update-install-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  border-radius: var(--radius-full);
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+.update-install-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.35); }
+.update-install-btn:disabled { opacity: 0.6; cursor: default; }
 
 .login-btn {
   width: 100%;
@@ -1978,24 +2008,305 @@ table.user-table tr:hover td {
   object-fit: cover;
 }
 
+/* Comment photo preview (before sending) */
+/* Múltiplos previews antes de enviar */
+.comment-photo-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+.comment-photo-preview {
+  position: relative;
+  display: inline-block;
+}
+.comment-photo-preview img {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  display: block;
+}
+.comment-photo-remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--gray-500);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.comment-photo-remove:hover { background: var(--danger); }
+
+/* Contador no botão de câmera */
+.camera-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+.camera-menu-wrapper {
+  position: relative;
+}
+.camera-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  z-index: 20;
+  min-width: 140px;
+}
+.camera-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+.camera-menu button:hover { background: var(--gray-100); }
+
+/* Grade de imagens no comentário enviado */
+.comment-images { margin-top: 6px; }
+.comment-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.comment-image-thumb {
+  position: relative;
+  width: 100px;
+  height: 80px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.comment-image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity var(--transition-fast);
+}
+.comment-image-thumb:hover img { opacity: 0.8; }
+.comment-image-expand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  background: rgba(0,0,0,0.3);
+  transition: opacity var(--transition-fast);
+}
+.comment-image-thumb:hover .comment-image-expand { opacity: 1; }
+.comment-download-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--primary);
+  background: transparent;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.comment-download-all:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ===========================
+   LIGHTBOX
+   =========================== */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--transition-fast) ease;
+}
+.lightbox-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 95vw;
+  max-height: 95dvh;
+  gap: 12px;
+}
+.lightbox-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+  z-index: 10;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
+.lightbox-img-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lightbox-img {
+  max-width: min(90vw, 900px);
+  max-height: 75dvh;
+  border-radius: var(--radius-lg);
+  object-fit: contain;
+  display: block;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+.lightbox-nav {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+.lightbox-nav:hover:not(:disabled) { background: rgba(255,255,255,0.3); }
+.lightbox-nav:disabled { opacity: 0.3; cursor: default; }
+.lightbox-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lightbox-counter {
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+}
+.lightbox-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.lightbox-action-btn:hover { background: rgba(255,255,255,0.28); }
+
+/* ===========================
+   MOBILE TOP BAR
+   =========================== */
+.mobile-topbar {
+  display: none;
+}
+
+.mobile-topbar-title {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-topbar-theme {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.mobile-topbar-theme:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 /* ===========================
    MOBILE MENU BUTTON
    =========================== */
 .mobile-menu-btn {
   display: none;
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 50;
-  background: var(--white);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
   padding: 8px;
   cursor: pointer;
-  color: var(--gray-700);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius);
   align-items: center;
   justify-content: center;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.mobile-menu-btn:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-mobile-overlay {
@@ -2044,9 +2355,31 @@ table.user-table tr:hover td {
 }
 
 @media (max-width: 700px) {
-  /* Mobile sidebar */
+  /* Mobile top bar */
+  .mobile-topbar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + var(--safe-top, env(safe-area-inset-top)) + 10px);
+    padding-top: calc(var(--safe-top, env(safe-area-inset-top)) + 10px);
+    padding-left: 4px;
+    padding-right: 12px;
+    background: var(--primary);
+    z-index: 50;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+
   .mobile-menu-btn {
     display: flex;
+  }
+
+  /* Push main content below topbar */
+  .app-main {
+    padding-top: calc(56px + var(--safe-top, env(safe-area-inset-top)) + 10px);
   }
 
   .sidebar-mobile-overlay {
@@ -2056,6 +2389,8 @@ table.user-table tr:hover td {
     background: rgba(0, 0, 0, 0.45);
     z-index: 90;
     animation: fadeIn var(--transition-fast) ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
 
   .sidebar {
@@ -2067,8 +2402,9 @@ table.user-table tr:hover td {
     width: var(--sidebar-width) !important;
     min-width: var(--sidebar-width) !important;
     transform: translateX(-100%);
-    transition: transform var(--transition-slow);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-lg);
+    padding-top: calc(var(--safe-top, env(safe-area-inset-top)) + 10px);
   }
 
   .sidebar.mobile-open {
@@ -2086,7 +2422,8 @@ table.user-table tr:hover td {
 
   .sidebar .sidebar-link {
     justify-content: flex-start !important;
-    padding: 10px 18px !important;
+    padding: 12px 18px !important;
+    min-height: 48px;
   }
 
   .sidebar .sidebar-logout-btn {
@@ -2096,6 +2433,30 @@ table.user-table tr:hover td {
 
   .sidebar .sidebar-logout-btn span:last-child {
     display: inline !important;
+  }
+
+  /* Touch scroll improvements */
+  .app-main,
+  .kanban-board,
+  .kanban-column,
+  .sidebar-nav,
+  .modal-body,
+  .modal-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Larger touch targets */
+  .sidebar-link,
+  .btn,
+  .modal-close,
+  .tab-btn {
+    min-height: 44px;
+  }
+
+  /* Remove tap highlight globally on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 
   .sidebar .sidebar-theme-btn {
@@ -2134,12 +2495,14 @@ table.user-table tr:hover td {
   /* Modal mobile - fullscreen */
   .modal-overlay {
     padding: 0;
+    padding-bottom: var(--keyboard-height, 0px);
     align-items: flex-end;
+    transition: padding-bottom 0.18s ease;
   }
 
   .modal {
     max-width: 100%;
-    max-height: 95vh;
+    max-height: 95dvh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 

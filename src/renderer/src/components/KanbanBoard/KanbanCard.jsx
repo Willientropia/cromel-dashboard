@@ -27,11 +27,11 @@ function getDueDateInfo(dueDateStr) {
   if (!dueDateStr) return null
   const [y, m, d] = dueDateStr.split('-').map(Number)
   const due = new Date(y, m - 1, d)
-  due.setHours(23, 59, 59, 999)
+  due.setHours(0, 0, 0, 0)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const diffMs = due.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
     const absDays = Math.abs(diffDays)
@@ -64,7 +64,8 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
     opacity: isDragging ? 0 : 1
   }
 
-  const assignedUser = users.find((u) => u.id === task.assignedTo)
+  const assignedIds = Array.isArray(task.assignedTo) ? task.assignedTo : task.assignedTo ? [task.assignedTo] : []
+  const assignedUsers = users.filter((u) => assignedIds.includes(u.id))
   const clientName = task.clientId && clientMap[task.clientId] ? clientMap[task.clientId].nome : null
   const dueInfo = task.status !== 'concluido' ? getDueDateInfo(task.dueDate) : null
   const isCompleted = task.status === 'concluido'
@@ -128,9 +129,10 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
           <span className="text-sm text-muted" title={task.updatedAt}>
             {timeAgo(task.updatedAt)}
           </span>
-          {assignedUser && (
+          {assignedUsers.map((assignedUser) => (
             assignedUser.photo ? (
               <img
+                key={assignedUser.id}
                 src={assignedUser.photo}
                 alt={assignedUser.username}
                 className="kanban-card-assignee-img"
@@ -138,13 +140,14 @@ export default function KanbanCard({ task, users = [], clientMap = {}, showDept 
               />
             ) : (
               <div
+                key={assignedUser.id}
                 className="kanban-card-assignee"
                 title={assignedUser.username}
               >
                 {getInitials(assignedUser.username)}
               </div>
             )
-          )}
+          ))}
         </div>
       </div>
 

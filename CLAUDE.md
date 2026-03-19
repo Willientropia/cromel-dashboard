@@ -40,8 +40,10 @@ Ambos usam **Firebase Firestore** como banco de dados em tempo real.
 ### Mobile (Capacitor + OTA)
 - Usa `@capgo/capacitor-updater` com bundle hospedado no GitHub Releases
 - Token de **leitura** hardcoded em `mobile/src/updater.js` (Contents: Read-only)
-- Verifica atualização 3s após abertura → baixa e aplica sem reinstalar APK
+- Verifica atualização 3s após abertura — **NÃO baixa automaticamente**
+- Exibe banner com botão "Instalar agora" na tela de login; o download só ocorre ao clicar
 - O asset esperado na release se chama `mobile-bundle.zip` (gerado por `mobile/scripts/release.mjs`)
+- **Importante**: usar `asset.browser_download_url` (não `asset.url`) — a API URL retorna redirect 302 que o código nativo não consegue seguir
 
 ### Dois tokens GitHub
 | Token | Permissão | Onde fica |
@@ -86,9 +88,48 @@ Se o arquivo `release.ps1` não existir (clone novo, outro colaborador), recrie-
 Firebase Firestore. As credenciais de **serviço** ficam em `firebase-service-account.json` (gitignored).
 A config do SDK Web (pública) fica inline no código (`mobile/src/api/firebase.js` e `src/main/firebase.js`).
 
+## Storage de arquivos (fotos de comentários)
+
+Fotos anexadas em comentários de tarefas são armazenadas no **Supabase Storage** (não Firebase).
+- Projeto: `fnfdilnlexznzkmzogwd` → URL: `https://fnfdilnlexznzkmzogwd.supabase.co`
+- Bucket: `comment-photos` (público)
+- URL pública das fotos: `https://fnfdilnlexznzkmzogwd.supabase.co/storage/v1/object/public/comment-photos/{arquivo}`
+- Desktop: upload via `src/main/db.js` usando `@supabase/supabase-js` (Admin SDK não suportava Storage sem plano pago)
+- Mobile: upload via `mobile/src/api/index.js` usando `@supabase/supabase-js` direto
+- Comentários armazenam `imageUrls: string[]` no Firestore (comentários antigos usam `imageUrl: string` — ambos são suportados na exibição)
+
+## Mobile — detalhes de implementação
+
+### Build correto para Android
+```bash
+cd mobile
+npm run build      # builda o JS (obrigatório antes de gerar APK)
+npm run cap:sync   # sincroniza o bundle com o projeto Android
+npm run cap:android  # abre Android Studio
+```
+Nunca buildar o APK direto pelo Android Studio sem antes rodar `npm run build` — o APK usará o bundle JS antigo.
+
+### Detecção de plataforma em componentes compartilhados
+```js
+const isDesktop = typeof window !== 'undefined' && !!window.api
+```
+`window.api` só existe no Electron. Usado em `CommentSection.jsx` para mostrar menu câmera/galeria apenas no mobile.
+
+### Safe area (notch/câmera/status bar)
+- `StatusBar.overlaysWebView: true` no `capacitor.config.json` — webview ocupa tela inteira
+- `env(safe-area-inset-top)` pode retornar `0` nos primeiros frames (timing issue)
+- Solução: `mobile/src/App.jsx` mede o inset via DOM com retry de 50ms e seta `--safe-top` como CSS variable
+- CSS usa `var(--safe-top, env(safe-area-inset-top))` em vez de `env()` diretamente
+
+### Teclado virtual nos modais
+- `AndroidManifest.xml` tem `windowSoftInputMode="adjustResize"`
+- `mobile/src/App.jsx` escuta `window.visualViewport.resize` e seta `--keyboard-height`
+- `.modal-overlay` no mobile aplica `padding-bottom: var(--keyboard-height, 0px)` para empurrar o modal acima do teclado
+
 ## Observações importantes
 
 - `mobile/mobile-bundle.zip` está no `.gitignore` (artefato de build, não deve subir)
 - `firebase-service-account.json` está no `.gitignore` (credenciais de admin — NUNCA commitar)
 - `release.ps1` está no `.gitignore` (contém token de escrita — NUNCA commitar)
 - Ao rodar `npm run build` no mobile, o plugin Vite substitui `src/renderer/src/api/index.js` pela versão mobile automaticamente
+- A anon key do Supabase está hardcoded no código (é pública por design — não é segredo)

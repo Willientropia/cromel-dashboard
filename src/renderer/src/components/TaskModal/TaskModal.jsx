@@ -30,7 +30,7 @@ export default function TaskModal({
       defaultDept ||
       (isAdmin ? DEPARTMENTS[0] : user?.departments?.[0]) ||
       DEPARTMENTS[0],
-    assignedTo: task?.assignedTo || '',
+    assignedTo: Array.isArray(task?.assignedTo) ? task.assignedTo : task?.assignedTo ? [task.assignedTo] : [],
     dueDate: task?.dueDate || '',
     clientId: task?.clientId || defaultClientId || '',
     serviceId: task?.serviceId || defaultServiceId || ''
@@ -66,7 +66,7 @@ export default function TaskModal({
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
     if (field === 'department') {
-      setForm((f) => ({ ...f, department: value, assignedTo: '' }))
+      setForm((f) => ({ ...f, department: value, assignedTo: [] }))
     }
   }
 
@@ -81,7 +81,7 @@ export default function TaskModal({
     try {
       const payload = {
         ...form,
-        assignedTo: form.assignedTo || null,
+        assignedTo: form.assignedTo.length > 0 ? form.assignedTo : null,
         dueDate: form.dueDate || null,
         clientId: form.clientId || null,
         serviceId: form.serviceId || null
@@ -249,16 +249,27 @@ export default function TaskModal({
 
               <div className="form-group">
                 <label className="form-label">Atribuir para</label>
-                <select
-                  className="form-select"
-                  value={form.assignedTo}
-                  onChange={(e) => set('assignedTo', e.target.value)}
-                >
-                  <option value="">&mdash; Nao atribuido &mdash;</option>
-                  {deptUsers.map((u) => (
-                    <option key={u.id} value={u.id}>{u.username}</option>
-                  ))}
-                </select>
+                {deptUsers.length === 0 ? (
+                  <p className="text-sm text-muted" style={{ margin: 0 }}>Nenhum usuario neste departamento.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                    {deptUsers.map((u) => (
+                      <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                        <input
+                          type="checkbox"
+                          checked={form.assignedTo.includes(u.id)}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...form.assignedTo, u.id]
+                              : form.assignedTo.filter((id) => id !== u.id)
+                            set('assignedTo', next)
+                          }}
+                        />
+                        {u.username}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

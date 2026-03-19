@@ -14,11 +14,25 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [version, setVersion] = useState('')
   const [updateVersion, setUpdateVersion] = useState(null)
+  const [installing, setInstalling] = useState(false)
+  const [installError, setInstallError] = useState('')
+  const isMobileUpdate = !!api?.applyUpdate
 
   useEffect(() => {
     api?.getVersion?.().then((v) => setVersion(v)).catch(() => {})
     api?.onUpdateAvailable?.((v) => setUpdateVersion(v))
   }, [])
+
+  async function handleInstallUpdate() {
+    setInstalling(true)
+    setInstallError('')
+    const res = await api.applyUpdate()
+    if (!res.success) {
+      setInstallError(res.error || 'Erro desconhecido ao instalar.')
+      setInstalling(false)
+    }
+    // se success: CapacitorUpdater.set() reinicia o app automaticamente
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -42,7 +56,25 @@ export default function LoginPage() {
     <div className="login-page">
       {updateVersion && (
         <div className="login-update-banner">
-          Nova versão {updateVersion} disponível — baixando automaticamente...
+          {isMobileUpdate ? (
+            <>
+              <span>Nova versão {updateVersion} disponível</span>
+              <button
+                className="update-install-btn"
+                onClick={handleInstallUpdate}
+                disabled={installing}
+              >
+                {installing ? 'Baixando...' : 'Instalar agora'}
+              </button>
+              {installError && (
+                <span className="update-install-error" title={installError}>
+                  ⚠ {installError}
+                </span>
+              )}
+            </>
+          ) : (
+            `Nova versão ${updateVersion} disponível — baixando automaticamente...`
+          )}
         </div>
       )}
       <div className="login-card">

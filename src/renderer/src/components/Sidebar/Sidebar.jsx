@@ -72,14 +72,20 @@ export default function Sidebar() {
 
   return (
     <>
-    {/* Mobile hamburger */}
-    <button
-      className="mobile-menu-btn"
-      onClick={() => setMobileOpen(true)}
-      title="Abrir menu"
-    >
-      <IconMenu size={22} />
-    </button>
+    {/* Mobile top bar */}
+    <div className="mobile-topbar">
+      <button
+        className="mobile-menu-btn"
+        onClick={() => setMobileOpen(true)}
+        title="Abrir menu"
+      >
+        <IconMenu size={24} />
+      </button>
+      <span className="mobile-topbar-title">Cromel Dashboard</span>
+      <button className="mobile-topbar-theme" onClick={toggleTheme} title={dark ? 'Modo claro' : 'Modo noturno'}>
+        {dark ? <IconSun size={20} /> : <IconMoon size={20} />}
+      </button>
+    </div>
 
     {/* Mobile overlay */}
     {mobileOpen && <div className="sidebar-mobile-overlay" onClick={() => setMobileOpen(false)} />}

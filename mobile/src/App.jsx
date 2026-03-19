@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@shared/contexts/AuthContext'
 import { ThemeProvider } from '@shared/contexts/ThemeContext'
@@ -83,6 +84,37 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // Mede env(safe-area-inset-top) via DOM e seta como --safe-top.
+  // O env() pode retornar 0 nos primeiros frames — retenta até ter valor real.
+  useEffect(() => {
+    let retries = 0
+    function measureSafeTop() {
+      const el = document.createElement('div')
+      el.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:0;width:0;height:0;pointer-events:none;visibility:hidden'
+      document.documentElement.appendChild(el)
+      const px = parseFloat(getComputedStyle(el).top) || 0
+      document.documentElement.removeChild(el)
+      if (px > 0 || retries >= 20) {
+        document.documentElement.style.setProperty('--safe-top', `${px}px`)
+      } else {
+        retries++
+        setTimeout(measureSafeTop, 50)
+      }
+    }
+    measureSafeTop()
+  }, [])
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    function onResize() {
+      const kbHeight = window.innerHeight - vv.height - vv.offsetTop
+      document.documentElement.style.setProperty('--keyboard-height', `${Math.max(0, kbHeight)}px`)
+    }
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [])
+
   return (
     <HashRouter>
       <AuthProvider>
